@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>God Mode - Admin V2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; font-family: 'Segoe UI', monospace; }
+        .cyber-border { border: 1px solid #3b82f6; box-shadow: 0 0 15px rgba(59, 130, 246, 0.2); }
+        .tab-btn.active { background-color: #2563eb; color: white; border-bottom: 2px solid #60a5fa; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <div class="bg-slate-900 border-b border-slate-700 p-4 flex justify-between items-center shadow-lg z-10">
+        <h1 class="text-2xl font-black text-blue-400 tracking-wider"><i class="fa-solid fa-user-secret mr-2"></i>GOD MODE <span class="text-xs text-gray-500 font-normal">v2.0</span></h1>
+        <div id="admin-status" class="text-red-500 font-bold text-sm bg-black/30 px-3 py-1 rounded">🔴 Disconnected</div>
+    </div>
+
+    <div id="admin-login" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center">
+        <div class="w-96 bg-slate-800 p-8 rounded-xl cyber-border text-center shadow-2xl">
+            <div class="text-5xl text-blue-500 mb-4"><i class="fa-brands fa-fort-awesome"></i></div>
+            <h2 class="text-xl font-bold mb-6 text-white">Admin Access</h2>
+            <input type="email" id="adm-email" placeholder="Admin Email" class="w-full bg-slate-900 border border-slate-600 p-3 rounded mb-3 text-white focus:border-blue-500 outline-none transition">
+            <input type="password" id="adm-pass" placeholder="Password" class="w-full bg-slate-900 border border-slate-600 p-3 rounded mb-6 text-white focus:border-blue-500 outline-none transition">
+            <button onclick="adminLogin()" class="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded font-bold text-white transition shadow-lg shadow-blue-500/30">LOGIN SYSTEM</button>
+        </div>
+    </div>
+
+    <div id="admin-dashboard" class="hidden flex flex-1 overflow-hidden">
+        
+        <div class="w-80 bg-slate-800 border-r border-slate-700 flex flex-col">
+            <div class="p-4 border-b border-slate-700 bg-slate-800/50">
+                <button onclick="loadAllUsers()" class="w-full bg-slate-700 hover:bg-slate-600 text-gray-200 py-2 rounded text-sm transition border border-slate-600">
+                    <i class="fa-solid fa-arrows-rotate mr-1"></i> Refresh List
+                </button>
+            </div>
+            <div id="user-list" class="flex-1 overflow-y-auto p-2 space-y-2"></div>
+        </div>
+
+        <div class="flex-1 bg-slate-900 relative flex flex-col">
+            
+            <div id="user-header" class="hidden bg-slate-800 p-6 border-b border-slate-700 flex justify-between items-start shadow-md">
+                <div>
+                    <h2 id="edit-name" class="text-3xl font-bold text-white mb-1">Player Name</h2>
+                    <div class="flex gap-4 text-xs">
+                        <span class="text-gray-400 bg-black/30 px-2 py-0.5 rounded">UID: <span id="edit-uid" class="font-mono text-blue-300">...</span></span>
+                        <span class="text-gray-400 bg-black/30 px-2 py-0.5 rounded">Email: <span id="edit-email" class="text-blue-300">...</span></span>
+                    </div>
+                </div>
+                <button onclick="saveUserData()" class="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded shadow-lg shadow-green-500/20 font-bold transition flex items-center gap-2 active:scale-95">
+                    <i class="fa-solid fa-floppy-disk"></i> SAVE DATA
+                </button>
+            </div>
+
+            <div id="editor-tabs" class="hidden flex border-b border-slate-700 bg-slate-800/50 overflow-x-auto">
+                <button onclick="switchTab('tab-res')" class="tab-btn active px-6 py-3 text-sm font-bold text-gray-400 hover:text-white transition"><i class="fa-solid fa-coins mr-2"></i>Resources</button>
+                <button onclick="switchTab('tab-hero')" class="tab-btn px-6 py-3 text-sm font-bold text-gray-400 hover:text-white transition"><i class="fa-solid fa-chess-knight mr-2"></i>Heroes & Arena</button>
+                <button onclick="switchTab('tab-items')" class="tab-btn px-6 py-3 text-sm font-bold text-gray-400 hover:text-white transition"><i class="fa-solid fa-gift mr-2"></i>Item Spawner</button>
+                <button onclick="switchTab('tab-inventory')" class="tab-btn px-6 py-3 text-sm font-bold text-gray-400 hover:text-white transition"><i class="fa-solid fa-boxes-stacked mr-2"></i>Inventory</button>
+                <button onclick="switchTab('tab-json')" class="tab-btn px-6 py-3 text-sm font-bold text-gray-400 hover:text-white transition"><i class="fa-solid fa-code mr-2"></i>Raw Data</button>
+                
+                <button id="btn-tab-super" onclick="switchTab('tab-super')" class="hidden tab-btn px-6 py-3 text-sm font-bold text-yellow-500 hover:text-yellow-300 transition border-l border-slate-700 bg-yellow-900/10">
+                    <i class="fa-solid fa-user-secret mr-2"></i>SUPER ADMIN
+                </button>
+            </div>
+
+            <div id="user-editor" class="hidden flex-1 overflow-y-auto p-8 relative">
+                
+                <div id="tab-res" class="tab-content grid grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-slate-800 p-4 rounded-xl border border-yellow-500/30 hover:border-yellow-500 transition">
+                        <label class="text-xs text-yellow-500 font-bold uppercase mb-1 block">Gold</label>
+                        <input type="number" id="inp-gold" class="w-full bg-black/50 border border-slate-600 rounded p-2 text-white font-mono text-lg text-right focus:border-yellow-500 outline-none">
+                    </div>
+                    <div class="bg-slate-800 p-4 rounded-xl border border-blue-500/30 hover:border-blue-500 transition">
+                        <label class="text-xs text-blue-400 font-bold uppercase mb-1 block">Gems</label>
+                        <input type="number" id="inp-gems" class="w-full bg-black/50 border border-slate-600 rounded p-2 text-white font-mono text-lg text-right focus:border-blue-500 outline-none">
+                    </div>
+                    <div class="bg-slate-800 p-4 rounded-xl border border-green-500/30 hover:border-green-500 transition">
+                        <label class="text-xs text-green-500 font-bold uppercase mb-1 block">Stamina</label>
+                        <input type="number" id="inp-stamina" class="w-full bg-black/50 border border-slate-600 rounded p-2 text-white font-mono text-lg text-right focus:border-green-500 outline-none">
+                    </div>
+                    <div class="bg-slate-800 p-4 rounded-xl border border-purple-500/30 hover:border-purple-500 transition">
+                        <label class="text-xs text-purple-400 font-bold uppercase mb-1 block">Account Level</label>
+                        <input type="number" id="inp-level" class="w-full bg-black/50 border border-slate-600 rounded p-2 text-white font-mono text-lg text-right focus:border-purple-500 outline-none">
+                    </div>
+                </div>
+
+                <div id="tab-hero" class="tab-content hidden grid grid-cols-2 gap-6">
+                    <div class="bg-slate-800 p-5 rounded-xl border border-slate-600">
+                        <h3 class="text-lg font-bold text-white mb-4 border-b border-slate-600 pb-2"><i class="fa-solid fa-crown text-yellow-500"></i> Active Hero Stats</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs text-gray-400">Hero Level</label>
+                                <input type="number" id="inp-hero-lv" class="w-full bg-black/50 border border-slate-600 rounded p-2 text-white">
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-400">Hero EXP</label>
+                                <input type="number" id="inp-hero-exp" class="w-full bg-black/50 border border-slate-600 rounded p-2 text-white">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-800 p-5 rounded-xl border border-slate-600">
+                        <h3 class="text-lg font-bold text-white mb-4 border-b border-slate-600 pb-2"><i class="fa-solid fa-swords text-red-500"></i> Arena Stats</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs text-gray-400">Rank Points</label>
+                                <input type="number" id="inp-arena-pts" class="w-full bg-black/50 border border-slate-600 rounded p-2 text-white">
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-400">Tickets</label>
+                                <input type="number" id="inp-arena-tkt" class="w-full bg-black/50 border border-slate-600 rounded p-2 text-white">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-items" class="tab-content hidden">
+                    <div class="bg-slate-800 p-6 rounded-xl border border-slate-600 mb-6 shadow-xl">
+                        <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-wand-magic-sparkles text-pink-500"></i> Item Spawner (Mail System)
+                        </h3>
+                        
+                        <div class="bg-black/30 p-3 rounded mb-4 border border-white/5">
+                            <label class="text-xs text-blue-400 mb-1 block uppercase font-bold">Mail Header</label>
+                            <input type="text" id="inp-mail-title" placeholder="e.g. Compensation Reward" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white mb-2 text-sm focus:border-blue-500 outline-none" value="Special Reward">
+                            
+                            <label class="text-xs text-blue-400 mb-1 block uppercase font-bold">Message</label>
+                            <textarea id="inp-mail-msg" placeholder="Write something to player..." class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white h-16 text-sm resize-none focus:border-blue-500 outline-none">Thank you for playing!</textarea>
+                        </div>
+                        <div class="mb-4">
+                            <label class="text-xs text-gray-400 mb-1 block uppercase font-bold">Select Item / Unit</label>
+                            <select id="select-item-id" class="w-full bg-black/50 border border-slate-600 rounded p-2 text-white h-12 text-sm focus:border-pink-500 outline-none">
+                                <option value="">-- Loading Database... --</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="text-xs text-gray-400 mb-1 block uppercase font-bold">Star Rank (Cards Only)</label>
+                                <input type="number" id="inp-spawn-stars" value="1" min="1" max="7" class="w-full bg-black/50 border border-slate-600 rounded p-2 text-white">
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-400 mb-1 block uppercase font-bold">Level (Cards Only)</label>
+                                <input type="number" id="inp-spawn-level" value="1" min="1" max="100" class="w-full bg-black/50 border border-slate-600 rounded p-2 text-white">
+                            </div>
+                        </div>
+
+                        <button onclick="giveSelectedItem()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white py-3 rounded font-bold shadow-lg shadow-blue-500/20 active:scale-95 transition">
+                            <i class="fa-solid fa-paper-plane mr-2"></i> SEND TO MAILBOX
+                        </button>
+                    </div>
+
+                    <div class="border-t border-slate-700 pt-6 mt-6">
+                            <h4 class="text-red-500 font-bold mb-2 text-xs uppercase">Danger Zone</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <button onclick="resetAccount()" class="bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-900/50 p-3 rounded text-sm font-bold flex items-center justify-center gap-2 transition">
+                                <i class="fa-solid fa-trash-can"></i> WIPE ACCOUNT
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-inventory" class="tab-content hidden h-full flex flex-col">
+                    <div class="grid grid-cols-3 gap-4 h-full overflow-hidden">
+                        <div class="bg-slate-800 rounded-xl border border-slate-600 flex flex-col overflow-hidden">
+                            <div class="p-3 bg-slate-900 border-b border-slate-700 font-bold text-yellow-400"><i class="fa-solid fa-id-card mr-2"></i> Cards (<span id="count-cards">0</span>)</div>
+                            <div id="list-cards" class="flex-1 overflow-y-auto p-2 space-y-2"></div>
+                        </div>
+                        <div class="bg-slate-800 rounded-xl border border-slate-600 flex flex-col overflow-hidden">
+                            <div class="p-3 bg-slate-900 border-b border-slate-700 font-bold text-blue-400"><i class="fa-solid fa-khanda mr-2"></i> Equipment (<span id="count-equip">0</span>)</div>
+                            <div id="list-equip" class="flex-1 overflow-y-auto p-2 space-y-2"></div>
+                        </div>
+                        <div class="bg-slate-800 rounded-xl border border-slate-600 flex flex-col overflow-hidden">
+                            <div class="p-3 bg-slate-900 border-b border-slate-700 font-bold text-purple-400"><i class="fa-solid fa-user-shield mr-2"></i> Heroes (<span id="count-heroes">0</span>)</div>
+                            <div id="list-heroes" class="flex-1 overflow-y-auto p-2 space-y-2"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-json" class="tab-content hidden h-full">
+                    <textarea id="inp-json" class="w-full h-96 bg-black border border-gray-700 rounded p-4 text-xs font-mono text-green-400 leading-relaxed resize-none focus:border-green-500 outline-none" disabled></textarea>
+                </div>
+
+                <div id="tab-super" class="tab-content hidden h-full flex flex-col p-6 space-y-6">
+                    
+                    <div class="bg-slate-800 rounded-xl border border-yellow-600/50 p-6">
+                        <h3 class="text-xl font-bold text-yellow-500 mb-4"><i class="fa-solid fa-users-gear"></i> Manage Admin Team</h3>
+                        <div class="flex gap-4 mb-4">
+                            <input type="text" id="inp-promote-uid" placeholder="Paste User UID to Promote" class="bg-black/50 border border-slate-600 rounded px-4 py-2 text-white w-96 text-sm font-mono focus:border-yellow-500 outline-none">
+                            <button onclick="promoteToAdmin()" class="bg-yellow-600 hover:bg-yellow-500 text-black font-bold px-6 py-2 rounded shadow-lg shadow-yellow-500/20">
+                                PROMOTE TO ADMIN
+                            </button>
+                        </div>
+                        <div class="text-xs text-gray-500 mb-2">Current Admins:</div>
+                        <div id="list-admins" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-40 overflow-y-auto"></div>
+                    </div>
+
+                    <div class="flex-1 bg-slate-800 rounded-xl border border-slate-600 flex flex-col overflow-hidden">
+                        <div class="p-4 bg-slate-900 border-b border-slate-700 flex justify-between items-center">
+                            <h3 class="text-lg font-bold text-blue-400"><i class="fa-solid fa-list-check"></i> System Audit Logs</h3>
+                            <button onclick="loadAuditLogs()" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-white">Refresh</button>
+                        </div>
+                        <div class="flex-1 overflow-y-auto p-0">
+                            <table class="w-full text-left text-sm text-gray-400">
+                                <thead class="bg-black/40 text-gray-200 sticky top-0">
+                                    <tr>
+                                        <th class="p-3">Time</th>
+                                        <th class="p-3">Admin</th>
+                                        <th class="p-3">Action</th>
+                                        <th class="p-3">Target User</th>
+                                        <th class="p-3">Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-logs" class="divide-y divide-slate-700/50 font-mono text-xs"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div id="editor-placeholder" class="absolute inset-0 flex items-center justify-center text-gray-600 z-0 bg-slate-900">
+                <div class="text-center animate-pulse">
+                    <i class="fa-solid fa-users-viewfinder text-6xl mb-4 opacity-20"></i>
+                    <p class="text-lg font-bold">Select a player to edit</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script type="module" src="js/admin.js"></script>
+    <script>
+        function switchTab(tabId) {
+            // 1. ซ่อนเนื้อหาทุก Tab
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            // 2. แสดงเนื้อหา Tab ที่เลือก
+            document.getElementById(tabId).classList.remove('hidden');
+            
+            // 3. ปรับสีปุ่ม Active
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            const btn = event.target.closest('.tab-btn');
+            if(btn) btn.classList.add('active');
+
+            // ถ้ากด Tab Inventory ให้โหลดรายการของ
+            if(tabId === 'tab-inventory' && window.renderInventoryList) {
+                window.renderInventoryList();
+            }
+
+            // ถ้ากด Tab Superadmin ให้โหลด Log และรายชื่อ
+            if (tabId === 'tab-super' && window.renderSuperadminTab) {
+                window.renderSuperadminTab();
+            }
+        }
+    </script>
+</body>
+</html>

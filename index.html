@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Battle Epic</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Kanit', 'sans-serif'] },
+                    colors: { 'card-bg': '#1a1c29' },
+                    animation: { 'bounce-slow': 'bounce 3s infinite' }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="h-screen flex flex-col font-sans bg-[#0f1115] text-white overflow-hidden select-none">
+    
+    <div id="login-overlay" class="fixed inset-0 z-[100] bg-[url('https://images.unsplash.com/photo-1614726365723-49cfae96a6d6?q=80&w=2574&auto=format&fit=crop')] bg-cover bg-center flex items-center justify-center">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
+        
+        <div class="relative bg-slate-900 p-8 rounded-2xl border-2 border-yellow-600 shadow-[0_0_50px_rgba(234,179,8,0.3)] max-w-md w-full text-center">
+            <div class="mb-6">
+                <h1 class="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 drop-shadow-sm tracking-tighter">
+                    CARD EPIC
+                </h1>
+                <p class="text-gray-400 text-sm tracking-widest mt-2">ONLINE BATTLE RPG</p>
+            </div>
+
+            <div id="login-form-container" class="space-y-4">
+                <div>
+                    <input type="email" id="inp-email" placeholder="Email Address" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white focus:border-yellow-500 focus:outline-none transition">
+                </div>
+                <div>
+                    <input type="password" id="inp-password" placeholder="Password" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white focus:border-yellow-500 focus:outline-none transition">
+                </div>
+                
+                <button onclick="authLogin()" class="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold py-3 rounded-lg shadow-lg transform transition active:scale-95 text-lg">
+                    LOGIN / START
+                </button>
+
+                <div class="relative flex py-2 items-center">
+                    <div class="flex-grow border-t border-gray-700"></div>
+                    <span class="flex-shrink-0 mx-4 text-gray-500 text-xs">OR</span>
+                    <div class="flex-grow border-t border-gray-700"></div>
+                </div>
+
+                <button onclick="authRegister()" class="w-full border border-yellow-600 text-yellow-500 hover:bg-yellow-600/10 font-bold py-3 rounded-lg transition text-sm">
+                    CREATE NEW ACCOUNT
+                </button>
+                
+                <div id="auth-msg" class="text-red-400 text-xs h-4 mt-2"></div>
+            </div>
+
+            <div id="login-loading" class="hidden py-10">
+                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-yellow-500 mb-4"></i>
+                <p class="text-gray-400 animate-pulse">Connecting to Server...</p>
+            </div>
+        </div>
+    </div>
+
+    <header class="h-16 bg-slate-900 border-b border-slate-700 flex items-center justify-between px-4 z-50 shadow-lg flex-shrink-0">
+        <div class="flex items-center gap-2">
+            <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center border-2 border-white shadow hover:scale-110 transition cursor-pointer" onclick="openHeroProfile()">
+                <i class="fa-solid fa-user-astronaut"></i>
+            </div>
+            <div>
+                <div class="text-sm font-bold text-white">Player</div>
+                <div class="w-24 h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div class="h-full bg-green-500 w-3/4 animate-pulse"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex gap-4">
+            <div class="resource-pill flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-full border border-slate-600">
+                <i class="fa-solid fa-bolt text-yellow-400"></i>
+                <span id="stamina-display">100/100</span>
+            </div>
+            <div class="resource-pill flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-full border border-slate-600">
+                <i class="fa-solid fa-coins text-yellow-500"></i>
+                <span id="gold-display">0</span>
+            </div>
+            <div class="resource-pill flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-full border border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.3)]">
+                <i class="fa-solid fa-gem text-purple-400 animate-pulse"></i>
+                <span id="gem-display" class="text-purple-100 font-bold">0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 relative overflow-hidden bg-[url('https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
+
+        <section id="page-stage" class="page-section active h-full overflow-hidden relative z-10">
+            <div class="absolute inset-0 bg-black/60 z-0"></div>
+
+            <div class="relative z-10 h-full flex flex-col">
+                <div class="p-6 text-center">
+                    <h2 class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 drop-shadow-sm tracking-widest uppercase">
+                        ADVENTURE MAP
+                    </h2>
+                    <p class="text-gray-400 text-xs mt-1">Conquer the lands and collect rewards</p>
+                </div>
+
+                <div id="stage-container" class="flex-1 overflow-y-auto p-4 pb-24 custom-scrollbar">
+                    </div>
+            </div>
+        </section>
+
+        <section id="page-deck" class="page-section h-full overflow-y-auto relative z-10 hidden scrollbar-hide">
+            <div class="container mx-auto max-w-5xl p-2 pb-24">
+                
+                <div class="bg-slate-900/95 border-b-4 border-yellow-500/50 rounded-xl p-4 shadow-2xl mb-4 relative">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center gap-2">
+                            <div class="bg-yellow-500 p-1.5 rounded text-black shadow-lg"><i class="fa-solid fa-chess-board text-lg"></i></div>
+                            <div>
+                                <h2 class="text-xl font-bold text-white tracking-wide">Battle Team</h2>
+                                <p class="text-[10px] text-gray-400">Active: 6 Units | Reserve: 2 Units</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="navTo('page-info')" class="w-8 h-8 rounded bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-lg transition" title="Encyclopedia">
+                                <i class="fa-solid fa-book-open"></i>
+                            </button>
+                             <button onclick="clearDeck()" class="px-3 py-1.5 text-xs border border-red-500 text-red-500 rounded hover:bg-red-500 hover:text-white transition uppercase font-bold">
+                                <i class="fa-solid fa-trash mr-1"></i> Reset
+                            </button>
+                            <button onclick="saveGame()" class="px-6 py-1.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white rounded font-bold shadow-[0_0_10px_rgba(34,197,94,0.4)] transition transform hover:scale-105 uppercase text-sm">
+                                <i class="fa-solid fa-save mr-1"></i> Save
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-row gap-3 items-center justify-center">
+                        <div id="hero-slot-container" class="flex-shrink-0"></div>
+
+                        <div class="grid grid-cols-4 grid-rows-2 gap-2" style="width: 33rem;" id="deck-slots-area"></div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800/80 backdrop-blur py-2 px-4 flex items-center justify-between border-b border-slate-700 text-sm shadow-md rounded-t-lg sticky top-0 z-30">
+                    <div class="font-bold text-gray-200 flex items-center gap-2 text-xs">
+                        <i class="fa-solid fa-layer-group text-blue-400"></i> Collection
+                    </div>
+                </div>
+                <div class="bg-[#111827]/90 p-2 rounded-b-lg min-h-[400px]">
+                    <div class="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2" id="collection-container"></div>
+                </div>
+            </div>
+        </section>
+        <section id="page-arena" class="page-section h-full relative z-10 hidden bg-slate-900/95 overflow-y-auto">
+            <div id="arena-container"></div>
+        </section>
+        <section id="page-battle" class="page-section h-full flex flex-col relative z-10 bg-black/50 hidden">
+            <div id="battle-effects-layer" class="absolute inset-0 pointer-events-none z-50 overflow-hidden"></div>
+            
+            <div class="flex-1 flex items-center justify-center p-4">
+                <div class="grid grid-cols-3 gap-2 md:gap-4 perspective-container" id="enemy-field"></div>
+            </div>
+
+            <div class="h-12 bg-black/80 backdrop-blur flex items-center justify-between px-6 border-y border-slate-700 relative z-20">
+                <div class="flex items-center gap-2">
+                    <div class="text-[10px] text-gray-400 uppercase tracking-wider">Turn</div>
+                    <div class="text-2xl font-bold text-white" id="turn-count">1</div>
+                </div>
+                <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex gap-2">
+                    <button onclick="toggleAuto()" id="btn-auto" class="px-6 py-1 rounded-full border border-yellow-500 text-yellow-400 text-xs font-bold hover:bg-yellow-500/20 transition flex items-center gap-2">
+                        <i class="fa-solid fa-robot"></i> AUTO
+                    </button>
+                </div>
+                <div class="text-[10px] text-gray-400" id="battle-status-text">Your Turn</div>
+            </div>
+
+            <div class="flex-1 flex items-center justify-center p-4 bg-gradient-to-t from-slate-900/80 to-transparent">
+                 <div class="grid grid-cols-3 gap-2 md:gap-4 perspective-container" id="player-field"></div>
+            </div>
+            
+            <div class="absolute bottom-20 left-4 w-64 max-h-32 bg-black/60 backdrop-blur rounded p-2 overflow-y-auto text-[10px] font-mono border-l-2 border-green-500 pointer-events-none fade-mask" id="battle-log">
+                <div class="text-green-400">Battle Start!</div>
+            </div>
+        </section>
+
+        <section id="page-gacha" class="page-section hidden h-full pt-20 pb-24 px-4 overflow-y-auto custom-scrollbar">
+             <div class="p-6 pb-24 max-w-4xl mx-auto">
+                <div class="text-center mb-8">
+                    <h2 class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-200 drop-shadow-sm uppercase tracking-widest">
+                        Summon Gate
+                    </h2>
+                    <p class="text-gray-400 text-xs mt-2">อัญเชิญฮีโร่เพื่อเข้าร่วมทีม</p>
+                </div>
+
+                <div id="gacha-result-area" class="mb-8 flex gap-4 flex-wrap justify-center min-h-[40px]"></div>
+
+                <div id="gacha-pool-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                
+                <div id="gacha-container" class="w-full h-full min-h-[500px]"></div>
+            </div>
+        </section>
+
+        <section id="page-shop" class="page-section h-full relative z-10 hidden bg-slate-900/95 overflow-y-auto">
+             <div class="p-6 max-w-4xl mx-auto">
+                <h2 class="text-3xl font-bold text-white mb-6 flex items-center gap-2">
+                    <i class="fa-solid fa-store text-yellow-500"></i> Merchant Shop
+                </h2>
+                <div id="shop-container" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+            </div>
+        </section>
+
+        <section id="page-info" class="page-section h-full p-6 relative z-10 hidden overflow-y-auto">
+            <h2 class="text-3xl font-bold mb-4">Card Encyclopedia</h2>
+            <div class="text-gray-400">คลิกที่การ์ดในหน้า Deck เพื่อดูรายละเอียด</div>
+        </section>
+
+        <section id="page-bag" class="page-section hidden h-full pt-20 pb-24 px-4 overflow-y-auto custom-scrollbar">
+            
+            <div class="max-w-4xl mx-auto">
+                <div class="flex items-center gap-4 mb-6">
+                    <h2 class="text-3xl font-black text-white italic drop-shadow-lg flex items-center gap-2">
+                        <i class="fa-solid fa-backpack text-orange-500"></i> INVENTORY
+                    </h2>
+                    <div class="bg-slate-800 px-4 py-1 rounded-full border border-white/10 text-xs text-gray-400">
+                        Consumables & Materials
+                    </div>
+                </div>
+
+                <div id="bag-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    </div>
+                
+                <div class="mt-8 border-t border-white/10 pt-6">
+                    <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-box-open text-blue-400"></i> Equipment Storage
+                    </h3>
+                    <div id="bag-equip-grid" class="grid grid-cols-4 md:grid-cols-6 gap-2">
+                        </div>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <nav class="h-16 bg-slate-900 border-t border-slate-700 grid grid-cols-5 items-center z-50 flex-shrink-0 relative">
+    
+        <button onclick="navTo('page-stage')" class="nav-item flex flex-col items-center justify-center text-gray-400 hover:text-yellow-400 transition h-full group">
+            <i class="fa-solid fa-map text-xl mb-1 group-hover:scale-110 transition"></i>
+            <span class="text-[10px] font-bold">World</span>
+        </button>
+        
+        <button onclick="navTo('page-arena')" class="nav-item flex flex-col items-center justify-center text-gray-400 hover:text-red-500 transition h-full group">
+            <i class="fa-solid fa-trophy text-xl mb-1 group-hover:scale-110 transition"></i>
+            <span class="text-[10px] font-bold">Arena</span>
+        </button>
+        
+        <div class="relative h-full flex items-center justify-center">
+            <button onclick="navTo('page-gacha')" class="absolute -top-6 w-16 h-16 rounded-full bg-gradient-to-b from-yellow-500 to-yellow-700 border-4 border-slate-900 shadow-[0_0_20px_rgba(234,179,8,0.6)] flex items-center justify-center text-white hover:scale-110 hover:-translate-y-2 transition-all duration-300 group z-10">
+                <i class="fa-solid fa-gem text-2xl group-hover:animate-pulse"></i>
+                <span class="absolute -bottom-6 opacity-0 group-hover:opacity-100 group-hover:bottom-[-25px] transition-all text-[10px] font-black text-yellow-500 bg-black/80 px-2 rounded-full border border-yellow-500/50">SUMMON</span>
+            </button>
+        </div>
+        
+        <button onclick="navTo('page-deck')" class="nav-item flex flex-col items-center justify-center text-gray-400 hover:text-blue-400 transition h-full group">
+            <i class="fa-solid fa-layer-group text-xl mb-1 group-hover:scale-110 transition"></i>
+            <span class="text-[10px] font-bold">Deck</span>
+        </button>
+        
+        <button onclick="navTo('page-shop')" class="nav-item flex flex-col items-center justify-center text-gray-400 hover:text-green-400 transition h-full group">
+            <i class="fa-solid fa-sack-dollar text-xl mb-1 group-hover:scale-110 transition"></i>
+            <span class="text-[10px] font-bold">Shop</span>
+        </button>
+
+    </nav>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

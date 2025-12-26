@@ -1,0 +1,407 @@
+/* =========================================
+   1. CORE & UTILS
+   ========================================= */
+body { -webkit-tap-highlight-color: transparent; }
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar { width: 6px; height: 8px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Page Transitions */
+.page-section { display: none; opacity: 0; transition: opacity 0.2s; }
+.page-section.active { display: block; opacity: 1; }
+.nav-item.active { color: #3b82f6; transform: translateY(-2px); }
+
+/* =========================================
+   2. CARD SYSTEM (BASE)
+   ========================================= */
+.game-card {
+    position: relative; cursor: pointer;
+    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    transition: all 0.15s; user-select: none; border: 1px solid #374151; overflow: hidden;
+}
+.game-card:hover { transform: translateY(-2px); border-color: #6b7280; z-index: 5; }
+.game-card:active { transform: scale(0.98); }
+.game-card.selected { border-color: #3b82f6; background: #1e3a8a; opacity: 0.5; }
+
+/* Deck Slot Styles */
+.deck-slot {
+    position: relative; cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.deck-slot:hover { transform: translateY(-3px); border-color: #ef4444; } 
+.deck-slot-empty { transition: all 0.2s; }
+.deck-slot-empty:hover { border-color: #94a3b8; background: rgba(30, 41, 59, 0.6); color: #cbd5e1; }
+
+/* =========================================
+   3. RARITY SYSTEM (OPTIMIZED 2.0)
+   ========================================= */
+
+/* พื้นฐานของ Rarity Border */
+.rarity-C, .rarity-U, .rarity-R, .rarity-SR, .rarity-UR, .rarity-LEGEND, .rarity-MYTHICAL {
+    transition: all 0.3s ease;
+    will-change: transform, box-shadow;
+}
+
+/* ⚪ Common & Uncommon */
+.rarity-C { border: 1px solid #4b5563; }
+.rarity-U { border: 1px solid #9ca3af; }
+.game-card-v2:hover.rarity-C { border-color: #6b7280; }
+.game-card-v2:hover.rarity-U { border-color: #e5e7eb; box-shadow: 0 0 10px rgba(255,255,255,0.1); }
+
+/* 🔵 Rare (3⭐) & 🟣 Super Rare (4⭐) */
+.rarity-R { border: 1px solid #2563eb; }
+.rarity-SR { border: 1px solid #9333ea; }
+
+.foil-shine {
+    position: absolute; inset: 0;
+    background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.1) 40%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.1) 60%, transparent 70%);
+    background-size: 200% 100%;
+    opacity: 0; 
+    pointer-events: none;
+    transition: opacity 0.3s;
+}
+
+.game-card-v2:hover.rarity-R { box-shadow: 0 0 15px rgba(37, 99, 235, 0.4); border-color: #60a5fa; }
+.game-card-v2:hover.rarity-SR { box-shadow: 0 0 15px rgba(147, 51, 234, 0.4); border-color: #c084fc; }
+.game-card-v2:hover .foil-shine { opacity: 1; animation: foilSwipe 1.5s infinite linear; }
+
+/* 🟡 Ultra Rare (5⭐) */
+.rarity-UR { border: 2px solid #ca8a04; box-shadow: inset 0 0 10px rgba(202, 138, 4, 0.1); }
+.game-card-v2:hover.rarity-UR {
+    border-color: #facc15;
+    box-shadow: 0 0 20px rgba(234, 179, 8, 0.5), inset 0 0 20px rgba(234, 179, 8, 0.2);
+    animation: goldPulse 2s infinite;
+}
+.game-card-v2:hover.rarity-UR .foil-shine {
+    background: linear-gradient(120deg, transparent 30%, rgba(253, 224, 71, 0.1) 40%, rgba(253, 224, 71, 0.6) 50%, rgba(253, 224, 71, 0.1) 60%, transparent 70%);
+    opacity: 1;
+    animation: foilSwipe 1s infinite linear;
+}
+
+/* 🔥 LEGEND (6⭐) */
+.rarity-LEGEND { border: 2px solid #ea580c; overflow: visible; }
+.legendary-fire {
+    position: absolute; inset: -2px; border-radius: 12px;
+    box-shadow: 0 0 10px #ea580c, inset 0 0 20px #ea580c;
+    opacity: 0; transition: opacity 0.3s; z-index: -1;
+}
+.game-card-v2:hover.rarity-LEGEND { transform: translateY(-5px) scale(1.05); border-color: #fb923c; z-index: 20; }
+.game-card-v2:hover .legendary-fire { opacity: 1; animation: firePulse 1.5s infinite alternate; }
+
+/* 🌌 MYTHICAL (7⭐+) */
+.rarity-MYTHICAL { border: 2px solid rgba(255,255,255,0.3); }
+.mythical-holo-overlay, .mythical-sparkles {
+    position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 0.5s;
+}
+.mythical-holo-overlay {
+    background: linear-gradient(115deg, transparent 20%, rgba(255,0,0,0.3) 30%, rgba(0,255,255,0.3) 70%);
+    background-size: 200% 200%; mix-blend-mode: overlay; z-index: 5;
+}
+.mythical-sparkles {
+    background-image: radial-gradient(white, rgba(255,255,255,.3) 1px, transparent 2px);
+    background-size: 150px 150px; z-index: 6;
+}
+.game-card-v2:hover.rarity-MYTHICAL {
+    border-color: #22d3ee;
+    box-shadow: 0 0 20px rgba(34, 211, 238, 0.6), 0 0 50px rgba(168, 85, 247, 0.4);
+    z-index: 30;
+}
+.game-card-v2:hover .mythical-holo-overlay { opacity: 1; animation: prismMove 3s infinite linear; }
+.game-card-v2:hover .mythical-sparkles { opacity: 0.8; animation: sparkleMove 4s infinite linear; }
+
+/* Rarity Animations */
+@keyframes foilSwipe { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@keyframes goldPulse { 0% { box-shadow: 0 0 10px #eab308; } 50% { box-shadow: 0 0 25px #facc15; } 100% { box-shadow: 0 0 10px #eab308; } }
+@keyframes firePulse { 0% { box-shadow: 0 0 15px #ea580c; } 100% { box-shadow: 0 0 40px #f97316; } }
+@keyframes prismMove { 0% { background-position: 0% 0%; filter: hue-rotate(0deg); } 100% { background-position: 100% 100%; filter: hue-rotate(360deg); } }
+@keyframes sparkleMove { 0% { background-position: 0 0, 40px 60px; } 100% { background-position: 550px 550px, 390px 410px; } }
+
+/* =========================================
+   4. BATTLE VISUALS (FLOATING TEXT & FX)
+   ========================================= */
+
+/* Floating Text */
+@keyframes floatUpFade {
+    0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; }
+    20% { transform: translate(-50%, -20px) scale(1.2); opacity: 1; }
+    40% { transform: translate(-50%, -25px) scale(1.0); opacity: 1; }
+    100% { transform: translate(-50%, -50px) scale(1.0); opacity: 0; }
+}
+@keyframes critShake {
+    0% { transform: translate(-50%, 0) scale(0.5) rotate(0deg); opacity: 0; }
+    20% { transform: translate(-50%, -20px) scale(2.0) rotate(-10deg); opacity: 1; }
+    40% { transform: translate(-50%, -20px) scale(1.5) rotate(10deg); opacity: 1; }
+    100% { transform: translate(-50%, -60px) scale(1.0) rotate(0deg); opacity: 0; }
+}
+
+.damage-number {
+    position: absolute; left: 50%; top: 0; pointer-events: none;
+    font-family: 'Kanit', sans-serif;
+    text-shadow: 2px 2px 0 #000, -1px -1px 0 #000;
+    z-index: 100; white-space: nowrap;
+}
+
+.dmg-normal { animation: floatUpFade 0.8s ease-out forwards; color: white; font-weight: bold; font-size: 1.2rem; }
+.dmg-crit { animation: critShake 0.8s ease-out forwards; color: #facc15; font-weight: 900; font-size: 2rem; text-shadow: 0 0 10px red; }
+.dmg-heal { animation: floatUpFade 1s ease-out forwards; color: #4ade80; font-weight: bold; font-size: 1.2rem; text-shadow: 0 0 5px green; }
+.dmg-miss { animation: floatUpFade 0.8s ease-out forwards; color: #9ca3af; font-style: italic; font-size: 1rem; }
+
+/* Attack Effects */
+@keyframes fxPop {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 0.8; }
+    50% { opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+}
+
+.impact-fx {
+    position: absolute; top: 50%; left: 50%;
+    width: 80px; height: 80px; border-radius: 50%;
+    pointer-events: none; z-index: 50; mix-blend-mode: screen;
+}
+
+.fx-FIRE { background: radial-gradient(circle, #fcd34d 10%, #ef4444 60%, transparent 70%); animation: fxPop 0.4s ease-out forwards; }
+.fx-WATER { background: radial-gradient(circle, #bae6fd 10%, #3b82f6 60%, transparent 70%); animation: fxPop 0.4s ease-out forwards; }
+.fx-NATURE { background: radial-gradient(circle, #bef264 10%, #22c55e 60%, transparent 70%); animation: fxPop 0.4s ease-out forwards; }
+.fx-LIGHT { background: radial-gradient(circle, #fff 20%, #facc15 60%, transparent 70%); animation: fxPop 0.4s ease-out forwards; box-shadow: 0 0 20px gold; }
+.fx-DARK { background: radial-gradient(circle, #e9d5ff 10%, #9333ea 60%, transparent 70%); animation: fxPop 0.4s ease-out forwards; mix-blend-mode: normal; }
+.fx-NORMAL { background: radial-gradient(circle, #fff 10%, #94a3b8 60%, transparent 70%); animation: fxPop 0.3s ease-out forwards; }
+
+/* Status Overlays */
+@keyframes pulseRed { 0%, 100% { box-shadow: inset 0 0 0 0 rgba(239,68,68,0); } 50% { box-shadow: inset 0 0 20px 10px rgba(239,68,68,0.5); } }
+@keyframes pulseGreen { 0%, 100% { box-shadow: inset 0 0 0 0 rgba(34,197,94,0); } 50% { box-shadow: inset 0 0 20px 10px rgba(34,197,94,0.5); } }
+@keyframes pulseBlue { 0%, 100% { box-shadow: inset 0 0 0 0 rgba(59,130,246,0); } 50% { box-shadow: inset 0 0 20px 10px rgba(59,130,246,0.5); } }
+
+.status-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 5; border-radius: 0.5rem; }
+.status-BURN { animation: pulseRed 1.5s infinite; border: 2px solid #ef4444; }
+.status-POISON { animation: pulseGreen 2s infinite; border: 2px solid #22c55e; }
+.status-FREEZE { animation: pulseBlue 3s infinite; background-color: rgba(59,130,246,0.2); }
+
+/* =========================================
+   5. BATTLE CARD ANIMATIONS (RESTORED)
+   ========================================= */
+
+/* ⚔️ ท่าโจมตีฝ่ายเรา (พุ่งขึ้น) */
+@keyframes attackUp {
+    0% { transform: translateY(0) scale(1); }
+    20% { transform: translateY(10px) scale(0.9); } /* ย่อตัวก่อนกระโดด */
+    50% { transform: translateY(-80px) scale(1.1); z-index: 100; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+    100% { transform: translateY(0) scale(1); z-index: 1; }
+}
+
+.anim-attack-up {
+    animation: attackUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* ⚔️ ท่าโจมตีศัตรู (พุ่งลง) */
+@keyframes attackDown {
+    0% { transform: translateY(0) scale(1); }
+    20% { transform: translateY(-10px) scale(0.9); }
+    50% { transform: translateY(80px) scale(1.1); z-index: 100; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+    100% { transform: translateY(0) scale(1); z-index: 1; }
+}
+
+.anim-attack-down {
+    animation: attackDown 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* 💢 ท่าโดนโจมตี (สั่น + แดงวาบ) */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); filter: brightness(1); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); }
+    20%, 40%, 60%, 80% { transform: translateX(6px); }
+    15% { filter: brightness(2) sepia(1) hue-rotate(-50deg) saturate(3); } /* แดงวาบ */
+}
+
+.anim-shake {
+    animation: shake 0.5s ease-in-out;
+}
+
+/* 💀 ท่าตาย (Fade Out) */
+.anim-dead {
+    transition: all 0.5s;
+    filter: grayscale(100%) brightness(0.5);
+    opacity: 0.5;
+    transform: scale(0.9);
+}
+
+
+/* --- 🌠 GACHA ANIMATIONS --- */
+
+/* 1. Mystery Card (หลังการ์ด) */
+.mystery-card {
+    width: 220px; height: 320px;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border: 2px solid #475569;
+    border-radius: 16px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 80px; color: #334155;
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+    position: relative; overflow: hidden;
+}
+.mystery-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.4);
+    border-color: #60a5fa;
+    color: #60a5fa;
+}
+
+/* ลวดลายหลังการ์ด */
+.mystery-pattern {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(#334155 1px, transparent 1px);
+    background-size: 20px 20px; opacity: 0.2;
+}
+
+/* 2. Reveal Animation (แสงวาบตอนเปิด) */
+@keyframes revealBurst {
+    0% { transform: scale(0.5); opacity: 0; filter: brightness(2); }
+    50% { transform: scale(1.1); opacity: 1; filter: brightness(1.5); }
+    100% { transform: scale(1); opacity: 1; filter: brightness(1); }
+}
+.anim-reveal {
+    animation: revealBurst 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* 3. Shine Effect (แสงหมุนๆ รอบการ์ดตอนยังไม่เปิด) */
+@keyframes spinLight {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.gacha-glow {
+    position: absolute; inset: -50%;
+    background: conic-gradient(transparent, rgba(255,255,255,0.3), transparent);
+    animation: spinLight 4s linear infinite;
+    z-index: 1; pointer-events: none;
+}
+
+/* --- GACHA: Custom Glows --- */
+
+/* BASIC: สีขาว/เทา (ค่าเดิม) */
+.gacha-glow-BASIC {
+    background: conic-gradient(transparent, rgba(255,255,255,0.5), transparent);
+}
+
+/* ADVANCED: สีม่วง */
+.gacha-glow-ADVANCED {
+    background: conic-gradient(transparent, rgba(147, 51, 234, 0.8), transparent);
+}
+
+/* HIGH: สีทอง */
+.gacha-glow-HIGH {
+    background: conic-gradient(transparent, rgba(234, 179, 8, 0.8), transparent);
+    animation: spinLight 2s linear infinite; /* หมุนเร็วขึ้น */
+}
+
+/* SPECIAL: สีแดง + เอฟเฟกต์ */
+.gacha-glow-SPECIAL {
+    background: conic-gradient(transparent, rgba(239, 68, 68, 0.9), transparent);
+    animation: spinLight 1.5s linear infinite; /* หมุนเร็วมาก */
+}
+
+/* เอฟเฟกต์เสริมสำหรับ SPECIAL (ละอองไฟ) */
+.special-ember {
+    position: absolute; width: 4px; height: 4px; background: #fca5a5;
+    border-radius: 50%; box-shadow: 0 0 10px red;
+    animation: emberFly 1s linear infinite;
+}
+@keyframes emberFly {
+    0% { transform: translateY(0) scale(1); opacity: 1; }
+    100% { transform: translateY(-100px) scale(0); opacity: 0; }
+}
+
+/* ✅ Class บังคับขนาดการ์ดตอนเปิด (Big Reward Card) */
+.reward-card-size {
+    width: 280px !important;    /* กว้างคงที่ */
+    height: 400px !important;   /* สูงคงที่ (สัดส่วน ~2:3) */
+    font-size: 1.2rem;          /* ขยายตัวหนังสือ */
+}
+
+/* ปรับรูปข้างในให้เต็ม */
+.reward-card-size img {
+    object-fit: cover;
+}
+
+
+/* --- 🎒 INVENTORY GRID STYLES --- */
+.inv-slot {
+    position: relative;
+    aspect-ratio: 1 / 1; /* บังคับสี่เหลี่ยมจัตุรัส */
+    background: rgba(15, 23, 42, 0.6); /* สีพื้นหลังเข้ม */
+    border: 2px solid #334155; /* ขอบสีเทา */
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+}
+
+/* ช่องว่าง */
+.inv-slot.empty {
+    opacity: 0.3;
+    cursor: default;
+    border-style: dashed;
+    border-color: #1e293b;
+    background: transparent;
+}
+
+/* ช่องมีของ */
+.inv-slot.filled:hover {
+    border-color: #fbbf24; /* สีเหลืองทอง */
+    background: rgba(30, 41, 59, 0.9);
+    transform: scale(1.05);
+    z-index: 10;
+    box-shadow: 0 0 15px rgba(251, 191, 36, 0.3);
+}
+
+/* ช่องที่ถูกเลือก (Selected) */
+.inv-slot.selected {
+    border-color: #f97316; /* สีส้ม */
+    background: rgba(249, 115, 22, 0.15);
+    box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.3), inset 0 0 15px rgba(249, 115, 22, 0.2);
+}
+
+/* ตัวเลขจำนวน */
+.inv-qty {
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 10px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+    font-family: monospace;
+    pointer-events: none;
+}
+
+
+.inv-slot.game-card-v2 {
+    border-width: 2px; /* บังคับขอบหนาหน่อยจะได้เห็นสีชัด */
+    border-radius: 8px;
+    background: #1e293b; /* สีพื้นหลัง */
+    overflow: hidden; /* บังคับไม่ให้แสงเกิน */
+}
+
+/* ปรับแสง Foil ให้เหมาะกับช่องเล็ก */
+.inv-slot .foil-shine {
+    opacity: 0.3; /* จางลงหน่อย */
+}
+.inv-slot:hover .foil-shine {
+    opacity: 0.8;
+}
+
+/* ปรับไอคอนให้ลอยเด่นขึ้นมา */
+.inv-slot img, .inv-slot div.text-2xl {
+    z-index: 10;
+    position: relative;
+}
