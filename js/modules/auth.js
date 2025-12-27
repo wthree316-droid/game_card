@@ -1,3 +1,5 @@
+// js/modules/auth.js
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { 
     getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, 
@@ -10,6 +12,7 @@ import {
 // ✅ Import resetGameData มาใช้งาน
 import { playerData, saveGame, resetGameData } from '../core/state.js';
 import { updateMailNotification } from './mail.js'; 
+import { createNewCard } from '../utils.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyAd5lxzwrrJF3cgg3mvRe9ei0ZT0og2Y1Q",
@@ -143,11 +146,35 @@ export function initAuth() {
                 // ... สร้างเซฟใหม่ ...
                 console.log("✨ New User Detected: Resetting data & Creating save...");
                 resetGameData(); 
+                // 💰 แจกเงิน / เพชร
+                playerData.resources.gold += 3000;  
+                playerData.resources.gems += 20;  
+                // 🎒 แจกไอเทม 
+                // รูปแบบ: playerData.items['ไอดีไอเทม'] = จำนวน;
+                playerData.items['pot_small'] = 3; 
+                playerData.items['tkt_exp'] = 1;
+
+                // 🃏 แจกการ์ด 
+                const starterIDs = ['c_001','c_002','c_003']; 
+
+                starterIDs.forEach(id => {
+                    // สร้างการ์ดตาม ID ที่ระบุ
+                    const card = createNewCard(id); 
+                    
+                    if (card) {
+                        card.level = 1; 
+                        playerData.inventory.push(card);
+                    } else {
+                        console.warn(`⚠️ Starter card ID '${id}' not found in DB.`);
+                    }
+                });
+                // ==========================================
                 
                 const cleanData = JSON.parse(JSON.stringify(playerData));
                 cleanData.email = user.email;
                 await setDoc(doc(db, "users", user.uid), cleanData);
                 saveGame();
+                console.log("🎁 Starter Gifts Added!");
             }
             
             startMailListener();
