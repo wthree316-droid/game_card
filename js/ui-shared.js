@@ -73,7 +73,7 @@ export function createCardElement(card, mode, isSelected = false) {
     // ใช้ will-change: transform เพื่อให้ GPU ช่วย render
     // ตัด backdrop-blur ออก เปลี่ยนเป็นสีพื้นหลังโปร่งแสงธรรมดา (bg-slate-900/90)
     
-    el.className = `game-card-v2 w-full h-44 rounded-xl flex flex-col justify-between cursor-pointer group ${rarityClass} ${isSelected ? 'ring-4 ring-green-500 scale-95 opacity-60' : ''} relative overflow-hidden bg-slate-900 shadow-md transition-transform duration-200`;
+    el.className = `game-card-v2 w-full h-[95px] sm:h-[130px] md:h-[173px] rounded-xl flex flex-col justify-between cursor-pointer group ${rarityClass} ${isSelected ? 'ring-4 ring-green-500 scale-95 opacity-60' : ''} relative overflow-hidden bg-slate-900 shadow-md transition-transform duration-200`;
     el.style.willChange = "transform"; 
 
     el.innerHTML = `
@@ -135,7 +135,7 @@ export function createCardElement(card, mode, isSelected = false) {
 export function createEmptySlot(index, container) {
     const empty = document.createElement('div');
     // ลดความซับซ้อนของ CSS
-    empty.className = 'deck-slot-empty w-full h-44 border-2 border-dashed border-gray-700 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 transition bg-slate-800/30';
+    empty.className = 'deck-slot-empty w-full h-[95px] sm:h-[130px] md:h-[173px] border-2 border-dashed border-gray-700 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 transition bg-slate-800/30';
     empty.innerHTML = `<span class="text-xs text-gray-500 font-bold">Slot ${index+1}</span><i class="fa-solid fa-plus text-2xl text-gray-600 mt-2"></i>`;
     
     // รองรับการ append เข้าทั้ง Element ปกติและ DocumentFragment
