@@ -1,4 +1,3 @@
-// js/main.js
 import { loadGame, playerData, saveGame } from './core/state.js';
 import { updateUI } from './ui-shared.js'; 
 import * as Deck from './modules/deck.js';
@@ -21,30 +20,111 @@ import * as Bag from './modules/bag.js';
 // 🛠️ HELPER: สร้างปุ่มลอย (Mail & Bag)
 // ----------------------------------------------------
 function createFloatingButtons() {
-    // 1. ปุ่มจดหมาย (Mail) - อยู่ที่เดิม (Top 20)
-    if (!document.getElementById('btn-open-mail')) {
-        const mailBtn = document.createElement('button');
-        mailBtn.id = 'btn-open-mail';
-        mailBtn.className = "fixed top-20 right-4 z-[100] w-12 h-12 bg-slate-800 border-2 border-slate-600 rounded-full shadow-lg flex items-center justify-center text-gray-300 hover:text-white hover:border-yellow-400 hover:bg-slate-700 transition active:scale-95";
-        mailBtn.innerHTML = '<i class="fa-solid fa-envelope text-xl"></i>';
-        mailBtn.onclick = Mail.openMailboxModal;
-        document.body.appendChild(mailBtn);
-        
-        if (Mail.updateMailNotification) Mail.updateMailNotification();
-    }
+    const menuId = 'floating-menu-container';
     
-    // 2. Bag Button (แก้ Icon เป็น fa-briefcase)
-    if (!document.getElementById('btn-open-bag')) {
-        const bagBtn = document.createElement('button');
-        bagBtn.id = 'btn-open-bag';
-        bagBtn.className = "fixed top-36 right-4 z-[100] w-12 h-12 bg-slate-800 border-2 border-slate-600 rounded-full shadow-lg flex items-center justify-center text-gray-300 hover:text-white hover:border-orange-400 hover:bg-slate-700 transition active:scale-95 animate-fade-in";
+    // ป้องกันการสร้างซ้ำ
+    if (document.getElementById(menuId)) return;
+
+    // 1. สร้าง Container หลัก (มุมขวาบน)
+    const container = document.createElement('div');
+    container.id = menuId;
+    // ใช้ flex-col และ items-end เพื่อให้ปุ่มเรียงลงมาตรงกัน
+    container.className = "fixed top-20 right-4 z-[100] flex flex-col items-end gap-2 animate-fade-in";
+
+    // 2. สร้างปุ่มเมนูหลัก (Toggle Button)
+    const toggleBtn = document.createElement('button');
+    toggleBtn.id = 'btn-menu-toggle';
+    toggleBtn.className = "w-12 h-12 bg-slate-900 border-2 border-yellow-500 rounded-full text-yellow-400 shadow-[0_0_15px_rgba(234,179,8,0.4)] flex items-center justify-center text-xl hover:scale-105 active:scale-95 transition-all z-20 relative";
+    toggleBtn.innerHTML = '<i class="fa-solid fa-bars"></i>'; // ไอคอน 3 ขีด
+
+    // 3. สร้างรายการปุ่มย่อย (List Container)
+    const listContainer = document.createElement('div');
+    listContainer.id = "floating-menu-list";
+    // CSS สำหรับ Animation: ซ่อนไว้ก่อน (scale-y-0) และจะขยายลงมา
+    listContainer.className = "flex flex-col gap-3 items-center transition-all duration-300 origin-top transform scale-y-0 opacity-0 h-0 p-1";
+
+    // --- ฟังก์ชันช่วยสร้างปุ่มย่อย ---
+    const createSubBtn = (icon, colorClass, label, onClick) => {
+        const btn = document.createElement('button');
+        // ปุ่มย่อยจะเล็กกว่าปุ่มหลักนิดหน่อย (w-10 h-10)
+        btn.className = `w-10 h-10 rounded-full shadow-lg flex items-center justify-center text-white transition-transform hover:scale-110 active:scale-95 border ${colorClass} group relative`;
+        btn.innerHTML = icon;
+        btn.onclick = onClick;
         
-        // ✅ เปลี่ยน Icon ตรงนี้เป็น fa-briefcase หรือ fa-suitcase
-        bagBtn.innerHTML = '<i class="fa-solid fa-briefcase text-xl text-orange-400"></i>';
+        // Tooltip (แสดงชื่อปุ่มเมื่อเอาเมาส์ชี้)
+        const tooltip = document.createElement('span');
+        tooltip.className = "absolute right-12 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap pointer-events-none border border-white/10";
+        tooltip.innerText = label;
+        btn.appendChild(tooltip);
         
-        bagBtn.onclick = () => window.navTo('page-bag');
-        document.body.appendChild(bagBtn);
+        return btn;
+    };
+
+    // 4. เพิ่มปุ่มย่อยเข้าไปในลิสต์
+    
+    // ✉️ Mail
+    listContainer.appendChild(createSubBtn(
+        '<i class="fa-solid fa-envelope"></i>',
+        'bg-slate-700 border-slate-500 hover:bg-slate-600',
+        'Mailbox',
+        () => {
+            if(window.Mail && window.Mail.openMailboxModal) window.Mail.openMailboxModal();
+            toggleMenu(false); // กดแล้วปิดเมนู
+        }
+    ));
+
+    // 💼 Bag
+    listContainer.appendChild(createSubBtn(
+        '<i class="fa-solid fa-briefcase"></i>',
+        'bg-orange-700 border-orange-500 hover:bg-orange-600',
+        'Inventory',
+        () => {
+            window.navTo('page-bag');
+            toggleMenu(false);
+        }
+    ));
+
+    // 🔴 Logout
+    listContainer.appendChild(createSubBtn(
+        '<i class="fa-solid fa-power-off"></i>',
+        'bg-red-700 border-red-500 hover:bg-red-600',
+        'Logout',
+        () => {
+            if(window.authLogout) window.authLogout();
+        }
+    ));
+
+    // 5. Logic การเปิด/ปิด เมนู
+    let isOpen = false;
+    
+    function toggleMenu(forceState = null) {
+        isOpen = forceState !== null ? forceState : !isOpen;
+        
+        if (isOpen) {
+            toggleBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>'; // เปลี่ยนไอคอนเป็นกากบาท
+            toggleBtn.classList.add('bg-slate-800', 'border-white');
+            toggleBtn.classList.remove('border-yellow-500', 'text-yellow-400');
+            
+            // สไลด์ลงมา
+            listContainer.classList.remove('scale-y-0', 'opacity-0', 'h-0');
+            listContainer.classList.add('scale-y-100', 'opacity-100', 'mt-2');
+        } else {
+            toggleBtn.innerHTML = '<i class="fa-solid fa-bars"></i>'; // กลับเป็น 3 ขีด
+            toggleBtn.classList.remove('bg-slate-800', 'border-white');
+            toggleBtn.classList.add('border-yellow-500', 'text-yellow-400');
+            
+            // สไลด์เก็บขึ้นไป
+            listContainer.classList.add('scale-y-0', 'opacity-0', 'h-0');
+            listContainer.classList.remove('scale-y-100', 'opacity-100', 'mt-2');
+        }
     }
+
+    toggleBtn.onclick = () => toggleMenu();
+
+    // ประกอบร่าง
+    container.appendChild(toggleBtn);
+    container.appendChild(listContainer);
+    document.body.appendChild(container);
 }
 
 // Daily Reset
@@ -99,25 +179,19 @@ window.navTo = function(pageId) {
     const footer = document.querySelector('nav');
     if (footer) footer.style.display = (pageId === 'page-battle') ? 'none' : 'grid';
 
-    // ✅✅✅ แก้ไขจุดที่ปุ่มหาย ✅✅✅
-    let mailBtn = document.getElementById('btn-open-mail');
+    // ✅✅✅ แก้ไขส่วนซ่อนปุ่มเมนู ✅✅✅
+    const menuContainer = document.getElementById('floating-menu-container');
     
     if (pageId === 'page-battle') {
-        // ซ่อนทั้ง 2 ปุ่มตอนสู้
-        const mailBtn = document.getElementById('btn-open-mail');
-        const bagBtn = document.getElementById('btn-open-bag');
-        if (mailBtn) mailBtn.style.display = 'none';
-        if (bagBtn) bagBtn.style.display = 'none';
+        // ซ่อนเมนูทั้งหมดตอนสู้
+        if (menuContainer) menuContainer.style.display = 'none';
+        
         Auth.stopMailListener();
     } else {
-        // โชว์กลับมา (หรือสร้างใหม่ถ้าหาย)
-        createFloatingButtons(); // ✅ เรียกทีเดียวได้ทั้งคู่
-
-        const mailBtn = document.getElementById('btn-open-mail');
-        const bagBtn = document.getElementById('btn-open-bag');
-
-        if (mailBtn) { mailBtn.style.display = 'flex'; mailBtn.style.zIndex = '9999'; }
-        if (bagBtn) { bagBtn.style.display = 'flex'; bagBtn.style.zIndex = '9999'; }
+        // โชว์กลับมา
+        createFloatingButtons(); // เรียกกันเหนียว
+        const menuContainer = document.getElementById('floating-menu-container'); // หาใหม่เผื่อเพิ่งสร้าง
+        if (menuContainer) menuContainer.style.display = 'flex';
 
         Auth.startMailListener();
     }
