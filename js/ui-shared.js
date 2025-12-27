@@ -29,6 +29,15 @@ export function updateUI() {
 }
 
 export function createCardElement(card, mode, isSelected = false) {
+    // ✅ 1. เพิ่ม Safety Check: ถ้าไม่มีข้อมูลการ์ด ให้คืนค่า div เปล่าๆ กลับไป (กันเกมค้าง)
+    if (!card) {
+        console.warn("createCardElement received null card data!");
+        const errorEl = document.createElement('div');
+        errorEl.className = "w-full h-full bg-red-900/50 border border-red-500 flex items-center justify-center text-red-500 text-xs font-bold";
+        errorEl.innerText = "Data Error";
+        return errorEl;
+    }
+
     const el = document.createElement('div');
     
     // 1. กำหนด Class ตามระดับดาว
