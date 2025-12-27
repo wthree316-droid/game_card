@@ -24,7 +24,21 @@ const DEFAULT_PLAYER_DATA = {
 
 // Export เป็น let เพื่อให้แก้ไขค่าภายในได้ แต่ห้าม Re-assign ตัวแปรนี้ใหม่ในไฟล์อื่น
 export let playerData = JSON.parse(JSON.stringify(DEFAULT_PLAYER_DATA));
-
+// ✅ เพิ่มฟังก์ชันนี้ลงไป (Export ออกไปใช้ข้างนอก)
+export function resetGameData() {
+    Object.assign(playerData, JSON.parse(JSON.stringify(DEFAULT_PLAYER_DATA)));
+    
+    // ตั้งค่าพื้นฐานใหม่ (กันเหนียว)
+    playerData.items = {};
+    playerData.heroInventory = [];
+    playerData.equipment = [];
+    playerData.inventory = [];
+    playerData.heroes = [{ uid: "h_starter", heroId: "h001", level: 1, exp: 0, equipped: {} }];
+    
+    // สำคัญ: ลบเซฟในเครื่องด้วย
+    localStorage.removeItem('cardBattleSave');
+    console.log("♻️ Game Data Reset to Default");
+}
 export function loadGame() {
     const saved = localStorage.getItem('cardBattleSave');
     if (saved) {
