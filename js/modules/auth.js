@@ -6,11 +6,11 @@ import {
     onAuthStateChanged, signOut 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { 
-    // ✅ เพิ่ม limit ใน import
     getFirestore, doc, setDoc, getDoc, onSnapshot, collection, query, orderBy, limit 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-import { playerData, saveGame } from '../core/state.js';
+// ✅ Import resetGameData มาใช้งาน
+import { playerData, saveGame, resetGameData } from '../core/state.js';
 import { updateMailNotification } from './mail.js'; 
 
 const firebaseConfig = {
@@ -67,7 +67,7 @@ function showSaveStatus(msg) {
 }
 
 // ============================================================
-// 📡 REAL-TIME LISTENER (Performance Optimized)
+// 📡 REAL-TIME LISTENER
 // ============================================================
 
 export function startMailListener() {
@@ -77,8 +77,6 @@ export function startMailListener() {
     console.log("📡 Mail Listener: STARTED");
     
     const mailRef = collection(db, "users", auth.currentUser.uid, "mails");
-    
-    // ✅✅✅ เพิ่ม limit(50) ตรงนี้ เพื่อโหลดแค่ 50 ฉบับล่าสุด ✅✅✅
     const q = query(mailRef, orderBy("timestamp", "desc"), limit(50));
 
     unsubscribeListener = onSnapshot(q, (snapshot) => {
@@ -110,7 +108,7 @@ export function stopMailListener() {
 }
 
 // ============================================================
-// 🔐 AUTH LOGIC
+// 🔐 AUTH LOGIC (ส่วนที่คุณขอแก้)
 // ============================================================
 
 export function initAuth() {
@@ -125,6 +123,7 @@ export function initAuth() {
             const docSnap = await getDoc(docRef);
 
             if (docSnap.exists()) {
+                // --- กรณีมีเซฟเก่า: โหลดมาทับ ---
                 const cloudData = docSnap.data();
                 Object.assign(playerData, cloudData);
                 
@@ -133,13 +132,26 @@ export function initAuth() {
                     window.checkDailyReset(); 
                 }
                 
+                // Refresh หน้าจอ
                 if(window.updateUI) window.updateUI();
                 if(window.renderDeckEditor) window.renderDeckEditor();
                 if(window.renderHeroDeckSlot) window.renderHeroDeckSlot();
             } else {
+                // --- กรณีผู้เล่นใหม่: ล้างค่าก่อนสร้าง! ---
+                console.log("✨ New User Detected: Resetting data & Creating save...");
+                
+                // ✅ 1. ล้างข้อมูลเก่าที่อาจค้างอยู่ใน Memory/Localstorage ทิ้ง
+                resetGameData(); 
+                
+                // 2. เตรียมข้อมูลใหม่ (ที่สะอาดแล้ว)
                 const cleanData = JSON.parse(JSON.stringify(playerData));
                 cleanData.email = user.email;
+                
+                // 3. บันทึกขึ้น Cloud
                 await setDoc(doc(db, "users", user.uid), cleanData);
+                
+                // 4. บันทึกลงเครื่อง
+                saveGame();
             }
             
             startMailListener();
@@ -180,6 +192,11 @@ window.authRegister = async () => {
 
 window.authLogout = async () => {
     if(!confirm("Log out?")) return;
+    
+    // ✅ ล้างข้อมูลในเครื่องทิ้งก่อน Logout ป้องกันข้อมูลค้าง
+    localStorage.removeItem('cardBattleSave');
+    resetGameData(); 
+    
     await signOut(auth);
     window.location.reload();
 };
