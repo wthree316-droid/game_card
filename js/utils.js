@@ -21,13 +21,34 @@ export const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 export function createNewCard(fixedCardId = null) {
     let templateId = fixedCardId;
+    
+    // ถ้าไม่ได้ระบุ ID มา -> ให้สุ่ม
     if (!templateId) {
         const keys = Object.keys(CARD_DATABASE);
+        if (keys.length === 0) {
+            console.error("❌ CARD_DATABASE is empty!");
+            return null;
+        }
         templateId = keys[Math.floor(Math.random() * keys.length)];
     }
     
     const template = CARD_DATABASE[templateId];
     
+    // ✅✅✅ เพิ่มจุดเช็ค: ถ้าหา ID ไม่เจอ ให้แจ้งเตือนและกันไม่ให้พัง
+    if (!template) {
+        console.error(`❌ Error: Card ID '${templateId}' not found in CARD_DATABASE.`);
+        
+        // กันตาย: ถ้าหาไม่เจอ ให้ลองสุ่มใบอื่นมาแทน (หรือ return null)
+        const keys = Object.keys(CARD_DATABASE);
+        if(keys.length > 0) {
+            const randomId = keys[0];
+            console.warn(`⚠️ Fallback to '${randomId}' instead.`);
+            return createNewCard(randomId); 
+        }
+        return null;
+    }
+    // ✅✅✅ จบจุดเช็ค
+
     let initialStars = 1;
     if (template.rarity === 'U') initialStars = 2;
     if (template.rarity === 'R') initialStars = 3;
@@ -43,7 +64,7 @@ export function createNewCard(fixedCardId = null) {
     
     return {
         uid: Date.now().toString(36) + Math.random().toString(36).substr(2),
-        traits: [], // มินเนี่ยนเริ่มต้นไม่มี Trait (ต้องผสมเอา)
+        traits: [],
         cardId: templateId,
         element: finalElement,
         level: 1,
