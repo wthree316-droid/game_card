@@ -1,5 +1,3 @@
-// js/modules/auth.js
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { 
     getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, 
@@ -115,15 +113,21 @@ export function initAuth() {
     if (!auth) return;
 
     onAuthStateChanged(auth, async (user) => {
+        // ✅ 1. ประกาศตัวแปร menu ตรงนี้ (บรรทัดแรกของ callback) เพื่อให้ใช้ได้ทั่วทั้งฟังก์ชัน
+        const menu = document.getElementById('floating-menu-container');
+
         if (user) {
             console.log("✅ Logged in:", user.email);
             document.getElementById('login-overlay').classList.add('hidden');
+
+            // ✅ 2. สั่งโชว์เมนู (ถ้ามี)
+            if (menu) menu.style.display = 'flex';
 
             const docRef = doc(db, "users", user.uid);
             const docSnap = await getDoc(docRef);
 
             if (docSnap.exists()) {
-                // --- กรณีมีเซฟเก่า: โหลดมาทับ ---
+                // ... โหลดเซฟเก่า ...
                 const cloudData = docSnap.data();
                 Object.assign(playerData, cloudData);
                 
@@ -132,25 +136,17 @@ export function initAuth() {
                     window.checkDailyReset(); 
                 }
                 
-                // Refresh หน้าจอ
                 if(window.updateUI) window.updateUI();
                 if(window.renderDeckEditor) window.renderDeckEditor();
                 if(window.renderHeroDeckSlot) window.renderHeroDeckSlot();
             } else {
-                // --- กรณีผู้เล่นใหม่: ล้างค่าก่อนสร้าง! ---
+                // ... สร้างเซฟใหม่ ...
                 console.log("✨ New User Detected: Resetting data & Creating save...");
-                
-                // ✅ 1. ล้างข้อมูลเก่าที่อาจค้างอยู่ใน Memory/Localstorage ทิ้ง
                 resetGameData(); 
                 
-                // 2. เตรียมข้อมูลใหม่ (ที่สะอาดแล้ว)
                 const cleanData = JSON.parse(JSON.stringify(playerData));
                 cleanData.email = user.email;
-                
-                // 3. บันทึกขึ้น Cloud
                 await setDoc(doc(db, "users", user.uid), cleanData);
-                
-                // 4. บันทึกลงเครื่อง
                 saveGame();
             }
             
@@ -160,6 +156,9 @@ export function initAuth() {
             console.log("💤 No user");
             stopMailListener();
             document.getElementById('login-overlay').classList.remove('hidden');
+
+            // ✅ 3. สั่งซ่อนเมนูตอน Logout
+            if (menu) menu.style.display = 'none';
         }
     });
 }
