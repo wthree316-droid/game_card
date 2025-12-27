@@ -374,8 +374,8 @@ export const SHOP_EQUIPMENT = [
 
 // 3. หมวดฮีโร่ (Hero Shop)
 export const SHOP_HEROES = [
-    { id: 'unlock_lilith', name: 'Unlock Lilith', desc: 'จอมเวทย์มืด (Sorceress)', icon: '/js/core/config_IMG/img_hero/hero1.webp', cost: 15000, currency: 'GOLD', type: 'UNLOCK_HERO', value: 'h002' },
-    { id: 'unlock_grog',   name: 'Unlock Grog',   desc: 'นักรบคลั่ง (Barbarian)', icon: '/js/core/config_IMG/img_hero/hero1.webp', cost: 20000, currency: 'GOLD', type: 'UNLOCK_HERO', value: 'h003' }
+    { id: 'unlock_lilith', name: 'Unlock Lilith', desc: 'จอมเวทย์มืด (Sorceress)', icon: '/js/core/config_IMG/img_hero/hero2.webp', cost: 15000, currency: 'GOLD', type: 'UNLOCK_HERO', value: 'h002' },
+    { id: 'unlock_grog',   name: 'Unlock Grog',   desc: 'นักรบคลั่ง (Barbarian)', icon: '/js/core/config_IMG/img_hero/hero4.webp', cost: 20000, currency: 'GOLD', type: 'UNLOCK_HERO', value: 'h003' }
 ];
 
 // 4. หมวดการ์ดพิเศษ (Card Shop)
