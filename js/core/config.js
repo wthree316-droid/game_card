@@ -374,8 +374,21 @@ export const SHOP_EQUIPMENT = [
 
 // 3. หมวดฮีโร่ (Hero Shop)
 export const SHOP_HEROES = [
-    { id: 'unlock_lilith', name: 'Unlock Lilith', desc: 'จอมเวทย์มืด (Sorceress)', icon: '/js/core/config_IMG/img_hero/hero2.webp', cost: 15000, currency: 'GOLD', type: 'UNLOCK_HERO', value: 'h002' },
-    { id: 'unlock_grog',   name: 'Unlock Grog',   desc: 'นักรบคลั่ง (Barbarian)', icon: '/js/core/config_IMG/img_hero/hero4.webp', cost: 20000, currency: 'GOLD', type: 'UNLOCK_HERO', value: 'h003' }
+    { id: 'unlock_lilith', 
+        name: 'Unlock Lilith', 
+        desc: 'จอมเวทย์มืด (Sorceress)', 
+        icon: '/js/core/config_IMG/img_hero/hero2.webp', 
+        cost: 15000, currency: 'GOLD', 
+        type: 'UNLOCK_HERO', 
+        value: 'h002' },
+        
+    { id: 'unlock_grog',   
+        name: 'Unlock Grog',   
+        desc: 'นักรบคลั่ง (Barbarian)', 
+        icon: '/js/core/config_IMG/img_hero/hero4.webp', 
+        cost: 20000, currency: 'GOLD', 
+        type: 'UNLOCK_HERO', 
+        value: 'h003' }
 ];
 
 // 4. หมวดการ์ดพิเศษ (Card Shop)
@@ -525,23 +538,32 @@ export const EQUIPMENT_KEYS = Object.keys(EQUIPMENT_DATABASE);
 
 // --- HERO DATABASE ---
 export const HERO_DATABASE = {
-    "h001": { 
+    "h001": {
+        heroId: "h001",
         name: "Arthur", job: "Paladin", element: "LIGHT", icon: "/js/core/config_IMG/img_hero/hero1.webp", 
         baseHp: 600, baseAtk: 60, baseDef: 50, baseSpd: 100, baseCrit: 0.1,
         desc: "อัศวินผู้กล้าหาญ เริ่มต้นการผจญภัย",
-        skill: { name: "Leadership", desc: "เพิ่ม ATK ให้เพื่อนร่วมทีมทั้งหมด 10%" }
+        skill: { name: "Leadership", desc: "เพิ่ม ATK ให้เพื่อนร่วมทีมทั้งหมด 10%" },
+        rarity: "R",
+        stars: 3
     },
-    "h002": { 
+    "h002": {
+        heroId: "h002",
         name: "Lilith", job: "Sorceress", element: "DARK", icon: "/js/core/config_IMG/img_hero/hero2.webp", 
         baseHp: 450, baseAtk: 90, baseDef: 30, baseSpd: 110, baseCrit: 0.15,
         desc: "จอมเวทย์มนตร์ดำ ผู้ควบคุมพลังมืด",
-        skill: { name: "Vampiric Aura", desc: "เพื่อนร่วมทีมดูดเลือด 10% จากดาเมจที่ทำได้" }
+        skill: { name: "Vampiric Aura", desc: "เพื่อนร่วมทีมดูดเลือด 10% จากดาเมจที่ทำได้" },
+        rarity: "SR",
+        stars: 4
     },
-    "h003": { 
+    "h003": {
+        heroId: "h003",
         name: "Grog", job: "Barbarian", element: "FIRE", icon: "/js/core/config_IMG/img_hero/hero3.webp",
         baseHp: 800, baseAtk: 70, baseDef: 40, baseSpd: 90, baseCrit: 0.2,
         desc: "นักรบคลั่ง ผู้กระหายสงคราม",
-        skill: { name: "War Cry", desc: "เริ่มต่อสู้ เพื่อนร่วมทีมได้เกราะป้องกัน 100 หน่วย" }
+        skill: { name: "War Cry", desc: "เริ่มต่อสู้ เพื่อนร่วมทีมได้เกราะป้องกัน 100 หน่วย" },
+        rarity: "UR",
+        stars: 5
     }
 };
 export const HERO_PASSIVES = {
