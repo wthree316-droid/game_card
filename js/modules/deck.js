@@ -238,9 +238,6 @@ function getFilterColor(type) {
     return map[type] || 'from-gray-600 to-slate-600';
 }
 
-// ... (ส่วน Pagination, clearDeck, renderHeroDeckSlot, Window Binding คงเดิม) ...
-// ให้ Copy ส่วนล่างของไฟล์เดิมมาใส่ต่อได้เลยครับ ตั้งแต่ renderPaginationControls ลงไป
-// แต่ต้องแก้ renderHeroDeckSlot นิดหน่อยถ้าอยากลด Lag (เอา backdrop-blur ออก)
 
 function renderPaginationControls(totalPages) {
     const collectionArea = document.getElementById('collection-container');
@@ -312,7 +309,7 @@ export function renderHeroDeckSlot() {
     const expPercent = Math.min(100, (stats.exp / maxExp) * 100);
 
     heroSlotContainer.innerHTML = `
-        <div onclick="openHeroProfile()" class="relative w-full md:w-[280px] h-48 md:h-[360px] bg-slate-900 rounded-2xl border-[3px] border-yellow-500/50 shadow-[0_0_30px_rgba(234,179,8,0.2)] flex flex-row md:flex-col overflow-hidden cursor-pointer group hover:border-yellow-400 transition-all duration-300">
+        <div onclick="openHeroProfile()" class="relative w-[130px] sm:w-[200px] md:w-[280px] h-[200px] sm:h-[270px] md:h-[360px] bg-slate-900 rounded-2xl border-[3px] border-yellow-500/50 shadow-[0_0_30px_rgba(234,179,8,0.2)] flex flex-row md:flex-col overflow-hidden cursor-pointer group hover:border-yellow-400 transition-all duration-300">
             <div class="absolute inset-0 z-0 bg-black">
                 ${isImage 
                     ? `<img src="${stats.icon}" class="w-full h-full object-cover object-top opacity-60 group-hover:opacity-80 transition duration-500" loading="lazy" alt="${stats.name}">` // เพิ่ม loading lazy
