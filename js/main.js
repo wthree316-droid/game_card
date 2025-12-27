@@ -1,3 +1,4 @@
+// js/main.js
 import { loadGame, playerData, saveGame } from './core/state.js';
 import { updateUI } from './ui-shared.js'; 
 import * as Deck from './modules/deck.js';
@@ -30,7 +31,7 @@ function createFloatingButtons() {
     container.id = menuId;
     // ใช้ flex-col และ items-end เพื่อให้ปุ่มเรียงลงมาตรงกัน
     container.className = "fixed top-20 right-4 z-[100] flex flex-col items-end gap-2 animate-fade-in";
-
+    container.style.display = 'none';
     // 2. สร้างปุ่มเมนูหลัก (Toggle Button)
     const toggleBtn = document.createElement('button');
     toggleBtn.id = 'btn-menu-toggle';
@@ -68,7 +69,8 @@ function createFloatingButtons() {
         'bg-slate-700 border-slate-500 hover:bg-slate-600',
         'Mailbox',
         () => {
-            if(window.Mail && window.Mail.openMailboxModal) window.Mail.openMailboxModal();
+            if(Mail && Mail.openMailboxModal) Mail.openMailboxModal();
+            else console.error("Mail module or openMailboxModal not found!"); // เผื่อไว้ debug
             toggleMenu(false); // กดแล้วปิดเมนู
         }
     ));
@@ -170,34 +172,47 @@ function checkDailyReset() {
 // 🧭 NAVIGATION SYSTEM
 // =========================================
 window.navTo = function(pageId) {
+    // 1. เคลียร์ Class active เก่า
     document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
     
+    // 2. เปิดหน้าใหม่
     const target = document.getElementById(pageId);
     if(target) target.classList.add('active');
 
+    // 3. จัดการ Footer (Bar ด้านล่าง)
     const footer = document.querySelector('nav');
     if (footer) footer.style.display = (pageId === 'page-battle') ? 'none' : 'grid';
 
-    // ✅✅✅ แก้ไขส่วนซ่อนปุ่มเมนู ✅✅✅
+    // ✅✅✅ 4. จัดการปุ่มเมนู (แก้ไข Logic แบบ Fail-Safe) ✅✅✅
+    
+    // เรียกสร้างปุ่มไว้ก่อน (ถ้ายังไม่มี)
+    createFloatingButtons();
+    
     const menuContainer = document.getElementById('floating-menu-container');
     
     if (pageId === 'page-battle') {
-        // ซ่อนเมนูทั้งหมดตอนสู้
+        // A. ถ้าอยู่หน้าสู้ -> ซ่อนเสมอ (อันนี้ชัวร์)
         if (menuContainer) menuContainer.style.display = 'none';
-        
         Auth.stopMailListener();
     } else {
-        // โชว์กลับมา
-        createFloatingButtons(); // เรียกกันเหนียว
-        const menuContainer = document.getElementById('floating-menu-container'); // หาใหม่เผื่อเพิ่งสร้าง
-        if (menuContainer) menuContainer.style.display = 'flex';
-
+        // B. ถ้าอยู่หน้าปกติ -> เช็คสถานะ
+        const loginOverlay = document.getElementById('login-overlay');
+        
+        // 🔥 จุดเปลี่ยนสำคัญ: 
+        // ถ้าหา overlay ไม่เจอ (!loginOverlay) -> ถือว่า Login แล้ว -> ให้เป็น True
+        // หรือถ้าเจอแล้วมี class 'hidden' -> ถือว่า Login แล้ว -> ให้เป็น True
+        const isLoggedIn = !loginOverlay || loginOverlay.classList.contains('hidden');
+        
+        if (menuContainer) {
+            // โชว์เมนูถ้า isLoggedIn เป็นจริง
+            menuContainer.style.display = isLoggedIn ? 'flex' : 'none';
+        }
+        
         Auth.startMailListener();
     }
     
-    // ✅✅✅ จบส่วนแก้ไข ✅✅✅
-
+    // 5. Init ระบบต่างๆ (เหมือนเดิม)
     if(pageId === 'page-stage') StageSystem.init();
     if(pageId === 'page-arena') Arena.init();
     if(pageId === 'page-deck') { Deck.init(); renderHeroDeckSlot(); }
