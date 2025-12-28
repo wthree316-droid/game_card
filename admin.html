@@ -188,7 +188,7 @@
                     <textarea id="inp-json" class="w-full h-96 bg-black border border-gray-700 rounded p-4 text-xs font-mono text-green-400 leading-relaxed resize-none focus:border-green-500 outline-none" disabled></textarea>
                 </div>
 
-                <div id="tab-super" class="tab-content hidden h-full flex flex-col p-6 space-y-6">
+                <div id="tab-super" class="tab-content hidden h-full overflow-y-auto">
                     
                     <div class="bg-slate-800 rounded-xl border border-yellow-600/50 p-6">
                         <h3 class="text-xl font-bold text-yellow-500 mb-4"><i class="fa-solid fa-users-gear"></i> Manage Admin Team</h3>
@@ -199,15 +199,20 @@
                             </button>
                         </div>
                         <div class="text-xs text-gray-500 mb-2">Current Admins:</div>
-                        <div id="list-admins" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-40 overflow-y-auto"></div>
+                        <div id="list-admins" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 max-h-[500px] overflow-y-auto pr-2"></div>
                     </div>
 
-                    <div class="flex-1 bg-slate-800 rounded-xl border border-slate-600 flex flex-col overflow-hidden">
+                    <div id="log-container" class="bg-slate-800 rounded-xl border border-slate-600 flex flex-col overflow-hidden transition-all duration-300">
                         <div class="p-4 bg-slate-900 border-b border-slate-700 flex justify-between items-center">
                             <h3 class="text-lg font-bold text-blue-400"><i class="fa-solid fa-list-check"></i> System Audit Logs</h3>
-                            <button onclick="loadAuditLogs()" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-white">Refresh</button>
+                            <div class="flex gap-2">
+                                <button onclick="loadAuditLogs()" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-white"><i class="fa-solid fa-rotate"></i></button>
+                                <button onclick="toggleLogFullScreen()" class="text-xs bg-blue-700 hover:bg-blue-600 px-3 py-1 rounded text-white" title="Full Screen">
+                                    <i id="btn-icon-expand" class="fa-solid fa-expand"></i> Full Screen
+                                </button>
+                            </div>
                         </div>
-                        <div class="flex-1 overflow-y-auto p-0">
+                        <div class="flex-1 overflow-y-auto p-0 bg-slate-800">
                             <table class="w-full text-left text-sm text-gray-400">
                                 <thead class="bg-black/40 text-gray-200 sticky top-0">
                                     <tr>
