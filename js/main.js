@@ -1,404 +1,299 @@
-// js/modules/bag.js
-import { playerData, saveGame } from '../core/state.js';
-import { SHOP_GENERAL, EQUIPMENT_DATABASE, HERO_EQUIPMENT_DATABASE } from '../core/config.js'; 
-import { showToast } from './ui-notifications.js';
-import { addExpToCard, getHeroStats } from '../utils.js';
+// js/main.js
+import { loadGame, playerData, saveGame } from './core/state.js';
+import { updateUI } from './ui-shared.js'; 
+import * as Deck from './modules/deck.js';
+import * as Summon from './modules/summon.js';
+import * as StageSystem from './modules/stage.js'; 
+import * as Breeding from './modules/breeding.js';
+import * as Battle from './modules/battle.js';
+import * as HeroManager from './modules/heroManager.js';
+import { renderHeroDeckSlot } from './modules/deck.js';
+import * as Shop from './modules/shop.js';
+import { showToast } from './modules/ui-notifications.js'; 
+import * as Arena from './modules/arena.js';
+import * as Encyclopedia from './modules/encyclopedia.js';
+import { STAGE_LIST } from './core/config.js';
+import * as Auth from './modules/auth.js';
+import * as Mail from './modules/mail.js';
+import * as Bag from './modules/bag.js'; 
 
-// State
-let selectedItemId = null;
-let selectedItemType = null; 
-let currentBagTab = 'ITEMS'; 
-
-// Helper: แสดงรูปภาพ
-function renderIcon(icon) {
-    if (!icon) return '<span class="opacity-20">?</span>';
-    const isImage = icon.includes('/') || icon.includes('.');
-    if (isImage) {
-        return `<img src="${icon}" class="w-full h-full object-cover rounded-md pointer-events-none select-none" loading="lazy" alt="icon">`;
-    } else {
-        return `<div class="pointer-events-none select-none">${icon}</div>`;
-    }
-}
-
-export function init() {
-    selectedItemId = null;
-    selectedItemType = null;
-    currentBagTab = 'ITEMS'; 
+// ----------------------------------------------------
+// 🛠️ HELPER: สร้างปุ่มลอย (Mail & Bag)
+// ----------------------------------------------------
+function createFloatingButtons() {
+    const menuId = 'floating-menu-container';
     
-    registerGlobalFunctions();
-    renderBagLayout(); // สร้างโครงสร้างครั้งเดียว
-    updateBagContent(); // อัปเดตเนื้อหา
-}
+    // ป้องกันการสร้างซ้ำ
+    if (document.getElementById(menuId)) return;
 
-function registerGlobalFunctions() {
-    window.selectBagItem = (itemId, type = 'ITEM') => {
-        if(selectedItemId === itemId && selectedItemType === type) return;
-        selectedItemId = itemId;
-        selectedItemType = type;
+    // 1. สร้าง Container หลัก (มุมขวาบน)
+    const container = document.createElement('div');
+    container.id = menuId;
+    // ใช้ flex-col และ items-end เพื่อให้ปุ่มเรียงลงมาตรงกัน
+    container.className = "fixed top-20 right-4 z-[100] flex flex-col items-end gap-2 animate-fade-in";
+    container.style.display = 'none';
+    // 2. สร้างปุ่มเมนูหลัก (Toggle Button)
+    const toggleBtn = document.createElement('button');
+    toggleBtn.id = 'btn-menu-toggle';
+    toggleBtn.className = "w-12 h-12 bg-slate-900 border-2 border-yellow-500 rounded-full text-yellow-400 shadow-[0_0_15px_rgba(234,179,8,0.4)] flex items-center justify-center text-xl hover:scale-105 active:scale-95 transition-all z-20 relative";
+    toggleBtn.innerHTML = '<i class="fa-solid fa-bars"></i>'; // ไอคอน 3 ขีด
+
+    // 3. สร้างรายการปุ่มย่อย (List Container)
+    const listContainer = document.createElement('div');
+    listContainer.id = "floating-menu-list";
+    // CSS สำหรับ Animation: ซ่อนไว้ก่อน (scale-y-0) และจะขยายลงมา
+    listContainer.className = "flex flex-col gap-3 items-center transition-all duration-300 origin-top transform scale-y-0 opacity-0 h-0 p-1";
+
+    // --- ฟังก์ชันช่วยสร้างปุ่มย่อย ---
+    const createSubBtn = (icon, colorClass, label, onClick) => {
+        const btn = document.createElement('button');
+        // ปุ่มย่อยจะเล็กกว่าปุ่มหลักนิดหน่อย (w-10 h-10)
+        btn.className = `w-10 h-10 rounded-full shadow-lg flex items-center justify-center text-white transition-transform hover:scale-110 active:scale-95 border ${colorClass} group relative`;
+        btn.innerHTML = icon;
+        btn.onclick = onClick;
         
-        updateSelectionVisuals(); 
-        renderDetailPanel(); 
-    };
-
-    window.switchBagTab = (tab) => {
-        currentBagTab = tab;
-        selectedItemId = null;
-        selectedItemType = null;
+        // Tooltip (แสดงชื่อปุ่มเมื่อเอาเมาส์ชี้)
+        const tooltip = document.createElement('span');
+        tooltip.className = "absolute right-12 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap pointer-events-none border border-white/10";
+        tooltip.innerText = label;
+        btn.appendChild(tooltip);
         
-        // อัปเดต Tabs UI
-        document.querySelectorAll('.bag-tab-btn').forEach(btn => {
-            const isTarget = btn.dataset.tab === tab;
-            btn.className = `bag-tab-btn flex-1 py-4 text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 relative ${isTarget ? 'text-white bg-white/10 shadow-[inset_0_-2px_10px_rgba(255,255,255,0.1)]' : 'text-gray-500 hover:bg-white/5'}`;
-            btn.querySelector('.tab-indicator').style.display = isTarget ? 'block' : 'none';
-        });
-
-        updateBagContent(); 
-        renderDetailPanel(); 
+        return btn;
     };
 
-    window.closeBag = () => {
-        // ✅ [แก้ไข] ถ้ามีหน้าเก่าที่จำไว้ ให้กลับไปหน้านั้น, ถ้าไม่มีให้กลับไป World
-        const targetPage = window.lastPageBeforeBag || 'page-stage';
-        window.navTo(targetPage); 
-    };
-
-    // --- Logic การกดใช้ของ ---
-    window.useBagItem = async (itemId) => {
-        try {
-            if (!playerData.items[itemId] || playerData.items[itemId] <= 0) return;
-
-            const itemConfig = SHOP_GENERAL.find(i => i.id === itemId);
-            if (!itemConfig) return showToast("Item data error!", "error");
-
-            let success = false;
-            let msg = "";
-
-            if (itemConfig.type === 'STAMINA') {
-                if (playerData.resources.stamina >= playerData.resources.maxStamina) return showToast("Stamina Full!", "warning");
-                playerData.resources.stamina = Math.min(playerData.resources.maxStamina, playerData.resources.stamina + (itemConfig.value || 0));
-                success = true;
-                msg = `+${itemConfig.value} Stamina`;
-            } 
-            else if (itemConfig.type === 'EXP_HERO') {
-                const activeHero = playerData.heroes.find(h => h.heroId === playerData.activeHeroId) || playerData.heroes[0];
-                if (activeHero) {
-                    const isLvUp = addExpToCard(activeHero, itemConfig.value || 0);
-                    success = true;
-                    msg = `+${itemConfig.value} EXP ${isLvUp ? '(LEVEL UP!)' : ''}`;
-                }
-            } else {
-                return showToast("Cannot use currently.", "info");
-            }
-
-            if (success) {
-                playerData.items[itemId]--;
-                if (playerData.items[itemId] <= 0) {
-                    delete playerData.items[itemId];
-                    selectedItemId = null;
-                }
-                saveGame();
-                updateBagContent();
-                renderDetailPanel();
-                if(window.updateUI) window.updateUI();
-                showToast(`${itemConfig.name} Used: ${msg}`, "success");
-            }
-        } catch (e) {
-            console.error(e);
-            alert("Error using item: " + e.message);
+    // 4. เพิ่มปุ่มย่อยเข้าไปในลิสต์
+    
+    // ✉️ Mail
+    listContainer.appendChild(createSubBtn(
+        '<i class="fa-solid fa-envelope"></i>',
+        'bg-slate-700 border-slate-500 hover:bg-slate-600',
+        'Mailbox',
+        () => {
+            if(Mail && Mail.openMailboxModal) Mail.openMailboxModal();
+            else console.error("Mail module or openMailboxModal not found!"); // เผื่อไว้ debug
+            toggleMenu(false); // กดแล้วปิดเมนู
         }
-    };
+    ));
 
-    window.equipFromBag = (equipId) => {
-        try {
-            const activeHero = playerData.heroes.find(h => h.heroId === playerData.activeHeroId) || playerData.heroes[0];
-            if (!activeHero) return showToast("No Active Hero!", "error");
-
-            const eqData = EQUIPMENT_DATABASE[equipId] || HERO_EQUIPMENT_DATABASE[equipId];
-            if (!eqData) return showToast("Invalid Equipment", "error");
-
-            const type = eqData.type;
-
-            if (activeHero.equipped[type]) {
-                const oldEquipId = activeHero.equipped[type];
-                if(!playerData.heroInventory) playerData.heroInventory = [];
-                playerData.heroInventory.push(oldEquipId);
-            }
-
-            activeHero.equipped[type] = equipId;
-
-            if (playerData.heroInventory) {
-                const idx = playerData.heroInventory.indexOf(equipId);
-                if (idx > -1) playerData.heroInventory.splice(idx, 1);
-            }
-
-            selectedItemId = null;
-            saveGame();
-            updateBagContent();
-            renderDetailPanel();
-            showToast(`${eqData.name} Equipped to ${getHeroStats(activeHero).name}`, "success");
-        } catch (e) {
-            console.error(e);
-            alert("Error equipping item: " + e.message);
+    // 💼 Bag
+    listContainer.appendChild(createSubBtn(
+        '<i class="fa-solid fa-briefcase"></i>',
+        'bg-orange-700 border-orange-500 hover:bg-orange-600',
+        'Inventory',
+        () => {
+            window.navTo('page-bag');
+            toggleMenu(false);
         }
-    };
-}
+    ));
 
-// ------------------------------------------------------------------
-// 🎨 1. LAYOUT (สร้างโครงสร้าง HTML ครั้งเดียว)
-// ------------------------------------------------------------------
-function renderBagLayout() {
-    const pageBag = document.getElementById('page-bag');
-    if (!pageBag) return;
-    if (document.getElementById('bag-ui-main')) return;
+    // 🔴 Logout
+    listContainer.appendChild(createSubBtn(
+        '<i class="fa-solid fa-power-off"></i>',
+        'bg-red-700 border-red-500 hover:bg-red-600',
+        'Logout',
+        () => {
+            if(window.authLogout) window.authLogout();
+        }
+    ));
 
-    // ✅ แก้ไข 1: เอา Padding ที่ฝังไว้ออก (pt-20 pb-20) และใช้ h-full เต็มที่
-    pageBag.innerHTML = `
-        <div id="bag-ui-main" class="flex flex-col h-full w-full max-w-7xl mx-auto overflow-hidden relative">
+    // 5. Logic การเปิด/ปิด เมนู
+    let isOpen = false;
+    
+    function toggleMenu(forceState = null) {
+        isOpen = forceState !== null ? forceState : !isOpen;
+        
+        if (isOpen) {
+            toggleBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>'; // เปลี่ยนไอคอนเป็นกากบาท
+            toggleBtn.classList.add('bg-slate-800', 'border-white');
+            toggleBtn.classList.remove('border-yellow-500', 'text-yellow-400');
             
-            <div class="flex justify-between items-center mb-4 bg-slate-900/90 backdrop-blur-md p-4 rounded-2xl border border-white/10 shadow-lg flex-shrink-0 z-20 mt-4 mx-4 md:mx-0">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg text-white text-2xl border-2 border-white/20">
-                        <i class="fa-solid fa-backpack"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-2xl font-black text-white italic tracking-wide uppercase drop-shadow">Inventory</h2>
-                        <div class="text-[10px] text-gray-400 font-mono tracking-widest bg-black/40 px-2 py-0.5 rounded inline-block">STORAGE SYSTEM</div>
-                    </div>
-                </div>
-
-                <button onclick="window.closeBag()" 
-                    class="w-10 h-10 rounded-full bg-slate-800 border border-slate-600 text-gray-400 hover:text-white hover:bg-red-600 hover:border-red-500 transition-all shadow-lg flex items-center justify-center group">
-                    <i class="fa-solid fa-xmark text-xl group-hover:scale-110 transition-transform"></i>
-                </button>
-            </div>
-
-            <div class="flex-1 flex flex-col md:flex-row gap-4 h-full items-start overflow-hidden relative z-10 px-4 md:px-0 pb-4">
-                
-                <div class="flex-1 w-full h-full bg-slate-900/80 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl overflow-hidden flex flex-col relative">
-                    
-                    <div class="flex border-b border-white/5 bg-black/30 flex-shrink-0 z-10">
-                        <button onclick="window.switchBagTab('ITEMS')" data-tab="ITEMS"
-                            class="bag-tab-btn flex-1 py-4 text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 relative text-white bg-white/10 shadow-[inset_0_-2px_10px_rgba(255,255,255,0.1)]">
-                            <i class="fa-solid fa-flask text-yellow-400"></i> Consumables
-                            <div class="tab-indicator absolute bottom-0 left-0 w-full h-0.5 bg-yellow-500 shadow-[0_0_15px_gold]"></div>
-                        </button>
-                        <button onclick="window.switchBagTab('EQUIP')" data-tab="EQUIP"
-                            class="bag-tab-btn flex-1 py-4 text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 relative text-gray-500 hover:bg-white/5">
-                            <i class="fa-solid fa-shield-halved text-blue-400"></i> Equipment
-                            <div class="tab-indicator absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 shadow-[0_0_15px_cyan]" style="display:none;"></div>
-                        </button>
-                    </div>
-
-                    <div class="flex-1 overflow-y-auto p-4 custom-scrollbar bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] relative z-0">
-                        <div id="bag-slots-container" class="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-8 gap-2 content-start">
-                            </div>
-                    </div>
-                    
-                    <div class="bg-black/60 p-2 text-center text-[10px] text-gray-500 font-mono border-t border-white/5 flex-shrink-0 z-10 shadow-[0_-5px_15px_rgba(0,0,0,0.3)]">
-                        Capacity: Unlimited
-                    </div>
-                </div>
-
-                <div class="w-full md:w-80 h-auto md:h-full flex-shrink-0">
-                    <div id="item-detail-panel" class="bg-slate-900/90 backdrop-blur-md border border-white/10 rounded-2xl p-6 h-full flex flex-col items-center text-center shadow-2xl relative overflow-hidden transition-all">
-                        </div>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-// ------------------------------------------------------------------
-// 🔄 2. CONTENT UPDATE (อัปเดตเฉพาะไส้ใน)
-// ------------------------------------------------------------------
-function updateBagContent() {
-    const container = document.getElementById('bag-slots-container');
-    if (!container) return;
-
-    let html = '';
-    // เพิ่มจำนวนช่องขั้นต่ำเพื่อให้ดูเต็มพื้นที่มากขึ้น
-    const MIN_SLOTS = currentBagTab === 'ITEMS' ? 42 : 42; 
-    let itemsToRender = [];
-
-    if (currentBagTab === 'ITEMS') {
-        if (!playerData.items) playerData.items = {};
-        const keys = Object.keys(playerData.items).filter(k => playerData.items[k] > 0);
-        itemsToRender = keys.map(id => ({ 
-            id, 
-            type: 'ITEM', 
-            qty: playerData.items[id],
-            data: SHOP_GENERAL.find(x => x.id === id) || { name: id, icon: '❓' } 
-        }));
-    } else {
-        if (!playerData.heroInventory) playerData.heroInventory = [];
-        itemsToRender = playerData.heroInventory.map(id => ({ 
-            id, 
-            type: 'EQUIP', 
-            qty: 1,
-            data: EQUIPMENT_DATABASE[id] || HERO_EQUIPMENT_DATABASE[id] 
-        })).filter(i => i.data); 
-    }
-
-    // คำนวณจำนวนแถวให้เต็มจอ
-    const cols = window.innerWidth < 640 ? 5 : (window.innerWidth < 768 ? 6 : 7);
-    const totalSlots = Math.max(MIN_SLOTS, Math.ceil(itemsToRender.length / cols) * cols);
-
-    for (let i = 0; i < totalSlots; i++) {
-        const item = itemsToRender[i];
-        if (item) {
-            const isSelected = selectedItemId === item.id && selectedItemType === item.type;
-            
-            let extraClass = '';
-            if (item.type === 'EQUIP') {
-                extraClass = `game-card-v2 rarity-${item.data.rarity || 'C'}`;
-            }
-
-            // ปรับปรุง Slot ให้ดูมีมิติขึ้น
-            html += `
-                <div onclick="window.selectBagItem('${item.id}', '${item.type}')" 
-                    id="slot-${item.id}"
-                    class="inv-slot filled ${extraClass} ${isSelected ? 'selected ring-2 ring-yellow-400 scale-105 z-10 shadow-[0_0_15px_rgba(255,215,0,0.5)]' : 'shadow-md'} cursor-pointer group relative aspect-square bg-slate-800 rounded-lg border border-slate-600/50 hover:border-yellow-400/80 transition-all overflow-hidden bg-gradient-to-br from-slate-700/50 to-slate-800/50" 
-                    title="${item.data.name}">
-                    
-                    ${item.type === 'EQUIP' ? '<div class="foil-shine opacity-20 pointer-events-none"></div>' : ''}
-
-                    <div class="w-full h-full p-2 flex items-center justify-center relative z-10 group-hover:scale-110 transition-transform duration-300">
-                        ${renderIcon(item.data.icon)} 
-                    </div>
-                    
-                    ${item.qty > 1 ? `<div class="absolute bottom-1 right-1 bg-black/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm backdrop-blur-sm border border-white/10 font-mono shadow-sm">x${item.qty}</div>` : ''}
-                    
-                    ${item.type === 'EQUIP' ? `<div class="absolute top-0.5 left-0.5 text-[7px] font-bold text-shadow-sm opacity-90 bg-black/50 px-1 rounded-sm">${item.data.rarity}</div>` : ''}
-                </div>
-            `;
+            // สไลด์ลงมา
+            listContainer.classList.remove('scale-y-0', 'opacity-0', 'h-0');
+            listContainer.classList.add('scale-y-100', 'opacity-100', 'mt-2');
         } else {
-            // ช่องว่างให้ดูจมลงไป
-            html += `<div class="inv-slot empty aspect-square bg-black/30 rounded-lg border border-white/5 shadow-[inset_0_0_10px_rgba(0,0,0,0.5)]"></div>`;
+            toggleBtn.innerHTML = '<i class="fa-solid fa-bars"></i>'; // กลับเป็น 3 ขีด
+            toggleBtn.classList.remove('bg-slate-800', 'border-white');
+            toggleBtn.classList.add('border-yellow-500', 'text-yellow-400');
+            
+            // สไลด์เก็บขึ้นไป
+            listContainer.classList.add('scale-y-0', 'opacity-0', 'h-0');
+            listContainer.classList.remove('scale-y-100', 'opacity-100', 'mt-2');
         }
     }
-    container.innerHTML = html;
+
+    toggleBtn.onclick = () => toggleMenu();
+
+    // ประกอบร่าง
+    container.appendChild(toggleBtn);
+    container.appendChild(listContainer);
+    document.body.appendChild(container);
 }
 
-function updateSelectionVisuals() {
-    document.querySelectorAll('.inv-slot.selected').forEach(el => {
-        el.classList.remove('selected', 'ring-2', 'ring-yellow-400', 'scale-105', 'z-10', 'shadow-[0_0_15px_rgba(255,215,0,0.5)]');
-        el.classList.add('shadow-md');
-    });
-    const target = document.getElementById(`slot-${selectedItemId}`);
-    if (target) {
-        target.classList.remove('shadow-md');
-        target.classList.add('selected', 'ring-2', 'ring-yellow-400', 'scale-105', 'z-10', 'shadow-[0_0_15px_rgba(255,215,0,0.5)]');
-    }
-}
-
-function renderDetailPanel() {
-    const panel = document.getElementById('item-detail-panel');
-    if (!panel) return;
-
-    // 1. Empty State (Sci-fi Style)
-    if (!selectedItemId) {
-        panel.innerHTML = `
-            <div class="w-full h-full flex flex-col items-center justify-center text-gray-500/50 select-none animate-pulse-soft bg-black/20 rounded-2xl border border-white/5 relative overflow-hidden">
-                <div class="absolute inset-0 opacity-5 bg-[url('https://www.transparenttextures.com/patterns/circuit-board.png')]"></div>
-                <div class="relative z-10 flex flex-col items-center">
-                     <div class="w-24 h-24 mb-4 rounded-full bg-slate-800/50 border-2 border-dashed border-white/10 flex items-center justify-center shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]">
-                        <i class="fa-solid fa-microchip text-4xl opacity-40"></i>
-                    </div>
-                    <p class="font-bold uppercase tracking-[0.2em] text-sm text-white/40">Awaiting Input</p>
-                    <p class="text-[10px] mt-2 font-mono opacity-60">Select an item to analyze</p>
-                </div>
-            </div>
-        `;
-        return;
-    }
-
-    // 2. Prepare Data
-    let itemData, qty, actionBtn;
+// Daily Reset
+function checkDailyReset() {
+    const now = new Date();
+    const todayStr = now.toDateString(); // ได้ค่าเช่น "Fri Dec 26 2025"
     
-    if (selectedItemType === 'ITEM') {
-        qty = playerData.items[selectedItemId];
-        itemData = SHOP_GENERAL.find(x => x.id === selectedItemId);
-        actionBtn = `<button onclick="window.useBagItem('${selectedItemId}')" class="w-full py-3 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold rounded-xl shadow-lg transform transition active:scale-95 flex items-center justify-center gap-2 border border-white/20 relative overflow-hidden group"><div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform"></div><i class="fa-solid fa-sparkles relative z-10"></i> <span class="relative z-10">USE ITEM</span></button>`;
-    } else {
-        qty = 1;
-        itemData = EQUIPMENT_DATABASE[selectedItemId] || HERO_EQUIPMENT_DATABASE[selectedItemId];
-        actionBtn = `<button onclick="window.equipFromBag('${selectedItemId}')" class="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg transform transition active:scale-95 flex items-center justify-center gap-2 border border-white/20 relative overflow-hidden group"><div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform"></div><i class="fa-solid fa-shirt relative z-10"></i> <span class="relative z-10">EQUIP TO HERO</span></button>`;
+    // 1. กันเหนียว: ถ้าไม่มีข้อมูล resources เลย ให้สร้างใหม่
+    if (!playerData.resources) {
+        playerData.resources = { gold: 0, gems: 0, stamina: 100, maxStamina: 100 };
     }
 
-    if (!itemData) {
-        panel.innerHTML = '<div class="text-red-500 font-bold border border-red-500 p-4 rounded">Error: Data Missing</div>';
-        return;
-    }
-
-    // 3. Theme Colors
-    const rarityColors = { 'C': 'gray', 'U': 'green', 'R': 'blue', 'SR': 'purple', 'UR': 'yellow', 'LEGEND': 'orange', 'MYTHICAL': 'red' };
-    const glowColor = rarityColors[itemData.rarity] || 'gray';
-
-    // 4. Stats HTML
-    let statsHtml = '';
-    if (selectedItemType === 'EQUIP') {
-        const stats = [
-            { label: 'ATK', val: itemData.atk, color: 'text-red-400' },
-            { label: 'DEF', val: itemData.def, color: 'text-blue-400' },
-            { label: 'HP', val: itemData.hp, color: 'text-green-400' },
-            { label: 'SPD', val: itemData.spd, color: 'text-yellow-400' },
-            { label: 'CRIT', val: itemData.crit ? Math.round(itemData.crit*100)+'%' : null, color: 'text-purple-400' }
-        ];
-        const validStats = stats.filter(s => s.val);
-        if (validStats.length > 0) {
-            statsHtml = `
-                <div class="bg-black/40 rounded-lg p-3 w-full border border-white/5 shadow-inner space-y-1 mb-4">
-                    ${validStats.map(s => `
-                        <div class="flex justify-between items-center text-xs border-b border-white/5 last:border-0 pb-1 last:pb-0">
-                            <span class="text-gray-500 font-bold">${s.label}</span>
-                            <span class="${s.color} font-mono font-bold">+${s.val}</span>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
+    // ✅ LOGIC ที่ถูกต้อง: เช็คว่า "วันที่บันทึกไว้" ไม่ตรงกับ "วันนี้"
+    // ถ้าเพิ่งเล่นครั้งแรก lastLoginDate จะเป็น null ก็จะเข้าเงื่อนไขนี้เช่นกัน
+    if (playerData.lastLoginDate !== todayStr) {
+        console.log("🔄 New Day Detected! Performing Daily Reset...");
+        
+        // A. รีเซ็ต Stamina เต็มหลอด
+        playerData.resources.stamina = playerData.resources.maxStamina;
+        
+        // B. รีเซ็ตตั๋ว Arena (ถ้ามีระบบ Arena)
+        if(playerData.arena) {
+            playerData.arena.tickets = playerData.arena.maxTickets || 5;
         }
+        
+        // C. อัปเดตวันที่ล่าสุดเป็นวันนี้ (เพื่อไม่ให้รีเซ็ตซ้ำในวันเดียวกัน)
+        playerData.lastLoginDate = todayStr;
+        
+        // D. บันทึกและอัปเดตหน้าจอทันที
+        saveGame();
+        
+        // เรียก updateUI เพื่อให้ตัวเลขเด้งทันที
+        if (window.updateUI) window.updateUI();
+        
+        // (Optional) แจ้งเตือนผู้เล่นว่ารีเซ็ตแล้ว
+        if (window.Toast) window.Toast("Daily Reset: Stamina & Tickets Refilled!", "success");
+    } else {
+        console.log("📅 Same Day - No Reset Needed");
+    }
+}
+
+// =========================================
+// 🧭 NAVIGATION SYSTEM
+// =========================================
+window.navTo = function(pageId) {
+    // จำหน้าปัจจุบันก่อนเปลี่ยน
+    const currentActive = document.querySelector('.page-section.active');
+    
+    // ถ้ากำลังจะไปหน้า Bag และหน้าปัจจุบันไม่ใช่หน้า Battle หรือ Bag เอง -> ให้จำหน้าปัจจุบันไว้
+    if (pageId === 'page-bag' && currentActive && currentActive.id !== 'page-battle' && currentActive.id !== 'page-bag') {
+        window.lastPageBeforeBag = currentActive.id;
+    }
+    // 1. เคลียร์ Class active เก่า
+    document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    
+    // 2. เปิดหน้าใหม่
+    const target = document.getElementById(pageId);
+    if(target) target.classList.add('active');
+
+    // 3. จัดการ Footer (Bar ด้านล่าง)
+    const footer = document.querySelector('nav');
+    if (footer) footer.style.display = (pageId === 'page-battle') ? 'none' : 'grid';
+
+    // ✅✅✅ 4. จัดการปุ่มเมนู (แก้ไข Logic แบบ Fail-Safe) ✅✅✅
+    
+    // เรียกสร้างปุ่มไว้ก่อน (ถ้ายังไม่มี)
+    createFloatingButtons();
+    
+    const menuContainer = document.getElementById('floating-menu-container');
+    
+    if (pageId === 'page-battle') {
+        // A. ถ้าอยู่หน้าสู้ -> ซ่อนเสมอ (อันนี้ชัวร์)
+        if (menuContainer) menuContainer.style.display = 'none';
+        Auth.stopMailListener();
+    } else {
+        // B. ถ้าอยู่หน้าปกติ -> เช็คสถานะ
+        const loginOverlay = document.getElementById('login-overlay');
+        
+        // 🔥 จุดเปลี่ยนสำคัญ: 
+        // ถ้าหา overlay ไม่เจอ (!loginOverlay) -> ถือว่า Login แล้ว -> ให้เป็น True
+        // หรือถ้าเจอแล้วมี class 'hidden' -> ถือว่า Login แล้ว -> ให้เป็น True
+        const isLoggedIn = !loginOverlay || loginOverlay.classList.contains('hidden');
+        
+        if (menuContainer) {
+            // โชว์เมนูถ้า isLoggedIn เป็นจริง
+            menuContainer.style.display = isLoggedIn ? 'flex' : 'none';
+        }
+        
+        Auth.startMailListener();
+    }
+    
+    // 5. Init ระบบต่างๆ (เหมือนเดิม)
+    if(pageId === 'page-stage') StageSystem.init();
+    if(pageId === 'page-arena') Arena.init();
+    if(pageId === 'page-deck') { Deck.init(); renderHeroDeckSlot(); }
+    if(pageId === 'page-gacha') Summon.init();
+    if(pageId === 'page-shop') Shop.init();
+    if(pageId === 'page-info') Encyclopedia.init();
+    if(pageId === 'page-bag') Bag.init();
+};
+
+const originalUpdateUI = updateUI;
+window.updateUI = () => {
+    originalUpdateUI(); 
+    if (Mail && Mail.updateMailNotification) {
+        Mail.updateMailNotification();
+    }
+};
+
+// =========================================
+// 🔗 BINDINGS
+// =========================================
+window.saveGame = saveGame;
+window.openBreeding = Breeding.openBreedingModal;
+window.clearDeck = Deck.clearDeck;
+window.renderDeckEditor = Deck.renderDeckEditor; 
+window.toggleAuto = Battle.toggleAuto;           
+window.claimMail = Mail.claimMail; 
+window.claimAllMails = Mail.claimAllMails;
+window.checkDailyReset = checkDailyReset;
+
+window.startGame = (stageId) => {
+    const stage = STAGE_LIST.find(s => s.id === stageId);
+    if (!stage) return;
+    if (playerData.resources.stamina < stage.stamina) return showToast("Not enough Stamina!", "error");
+    
+    playerData.resources.stamina -= stage.stamina;
+    saveGame();
+    window.updateUI();
+    Battle.startGame(stageId);
+};
+
+window.openHeroProfile = HeroManager.openHeroProfile;
+window.openHeroSwapModal = HeroManager.openHeroSwapModal;
+window.openHeroEquipManager = HeroManager.openHeroEquipManager;           
+window.heroEquipItem = HeroManager.heroEquipItem;       
+window.heroUnequipItem = HeroManager.heroUnequipItem;   
+window.selectActiveHero = HeroManager.selectActiveHero;
+window.openCardDetails = (uid) => {
+    const card = playerData.inventory.find(c => c.uid === uid) || playerData.heroes.find(h => h.uid === uid);
+    if (card) Encyclopedia.showCardDetail(card);
+};
+
+// =========================================
+// 🚀 INIT
+// =========================================
+function initApp() {
+    Auth.initAuth();
+    loadGame();    
+    
+    // สร้างปุ่มตอนเข้าเกม
+    createFloatingButtons();
+
+    // Breed Button
+    const deckHeader = document.querySelector('#page-deck .flex.gap-2');
+    if(deckHeader && !document.getElementById('btn-open-breed')) {
+        const btn = document.createElement('button');
+        btn.id = 'btn-open-breed';
+        btn.innerHTML = '<i class="fa-solid fa-heart mr-1"></i> Breed';
+        btn.className = "px-3 py-1.5 text-xs border border-pink-500 text-pink-500 rounded hover:bg-pink-500 hover:text-white transition uppercase font-bold";
+        btn.onclick = Breeding.openBreedingModal;
+        deckHeader.insertBefore(btn, deckHeader.firstChild);
     }
 
-    // 5. Render UI (ปรับปรุงใหม่: Icon ใหญ่, เต็มกรอบ, สวยงาม)
-    panel.innerHTML = `
-        <div class="w-full h-full flex flex-col animate-fade-in relative z-10">
-            <div class="absolute top-10 left-1/2 -translate-x-1/2 w-64 h-64 bg-${glowColor}-500/20 blur-3xl rounded-full pointer-events-none opacity-60"></div>
-
-            <div class="w-40 h-40 mx-auto bg-slate-900 rounded-3xl border-4 border-${glowColor}-500/50 shadow-[0_0_30px_rgba(var(--color-${glowColor}),0.3)] mb-6 relative overflow-hidden group transition-transform duration-300 hover:scale-105 hover:shadow-[0_0_50px_rgba(var(--color-${glowColor}),0.5)]">
-                
-                <div class="absolute inset-0 bg-gradient-to-t from-${glowColor}-900/60 to-transparent z-10 pointer-events-none"></div>
-                
-                <div class="w-full h-full flex items-center justify-center bg-slate-950 relative z-0">
-                    ${renderIcon(itemData.icon)}
-                </div>
-
-                ${itemData.rarity ? `
-                <div class="absolute bottom-3 right-3 z-20">
-                    <span class="bg-black/80 backdrop-blur-md text-${glowColor}-400 text-[10px] font-black px-3 py-1 rounded-full border border-${glowColor}-500/50 shadow-xl tracking-widest">
-                        ${itemData.rarity}
-                    </span>
-                </div>` : ''}
-            </div>
-            
-            <h2 class="text-2xl font-black text-white mb-1 uppercase tracking-wide leading-tight drop-shadow-md text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
-                ${itemData.name}
-            </h2>
-            
-            <div class="text-[10px] text-${glowColor}-400 mb-5 uppercase tracking-[0.2em] font-bold flex items-center justify-center gap-3 opacity-80">
-                <span class="w-8 h-px bg-gradient-to-r from-transparent to-${glowColor}-500"></span>
-                ${selectedItemType === 'EQUIP' ? itemData.type : 'CONSUMABLE'}
-                <span class="w-8 h-px bg-gradient-to-l from-transparent to-${glowColor}-500"></span>
-            </div>
-            
-            ${statsHtml}
-
-            <div class="py-4 px-5 rounded-xl border border-white/10 text-xs text-gray-300 italic text-center mb-auto leading-relaxed bg-white/5 shadow-[inset_0_0_20px_rgba(0,0,0,0.2)]">
-                "${itemData.desc || 'No description available.'}"
-            </div>
-
-            <div class="mt-6 pt-4 border-t border-white/10 w-full z-20 relative">
-                ${actionBtn}
-            </div>
-        </div>
-    `;
+    window.updateUI();
+    window.navTo('page-stage');
 }
+
+initApp();
