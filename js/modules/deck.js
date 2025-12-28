@@ -7,7 +7,7 @@ import { getCardStats, getHeroStats } from '../utils.js';
 
 // ✅ STATE
 let currentCollectionPage = 1;
-const ITEMS_PER_PAGE = 24; 
+const ITEMS_PER_PAGE = 50; 
 let lastFilterType = 'ALL';
 
 export function init() {
@@ -312,37 +312,42 @@ export function renderHeroDeckSlot() {
         <div onclick="openHeroProfile()" class="relative w-[130px] sm:w-[200px] md:w-[280px] h-[200px] sm:h-[270px] md:h-[360px] bg-slate-900 rounded-2xl border-[3px] border-yellow-500/50 shadow-[0_0_30px_rgba(234,179,8,0.2)] flex flex-row md:flex-col overflow-hidden cursor-pointer group hover:border-yellow-400 transition-all duration-300">
             <div class="absolute inset-0 z-0 bg-black">
                 ${isImage 
-                    ? `<img src="${stats.icon}" class="w-full h-full object-cover object-top opacity-60 group-hover:opacity-80 transition duration-500" loading="lazy" alt="${stats.name}">` // เพิ่ม loading lazy
-                    : `<div class="w-full h-full flex items-center justify-center text-9xl opacity-20">${stats.icon}</div>`
+                    ? `<img src="${stats.icon}" class="w-full h-full object-cover object-top opacity-60 group-hover:opacity-80 transition duration-500" loading="lazy" alt="${stats.name}">`
+                    : `<div class="w-full h-full flex items-center justify-center text-7xl sm:text-9xl opacity-20">${stats.icon}</div>`
                 }
                 <div class="absolute inset-0 bg-gradient-to-r md:bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent"></div>
             </div>
-            <div class="absolute top-3 left-3 z-20 flex gap-2">
-                <div class="bg-yellow-600 text-black text-xs font-black px-3 py-1 rounded shadow-lg flex items-center gap-1"><i class="fa-solid fa-crown"></i> LEADER</div>
-                <div class="bg-black/80 text-white text-xs font-bold px-3 py-1 rounded border border-white/10">CP ${stats.power.toLocaleString()}</div>
+            
+            <div class="absolute top-2 left-2 sm:top-3 sm:left-3 z-20 flex flex-col sm:flex-row gap-1 sm:gap-2">
+                <div class="bg-yellow-600 text-black text-[9px] sm:text-xs font-black px-2 sm:px-3 py-0.5 sm:py-1 rounded shadow-lg flex items-center gap-1 w-fit"><i class="fa-solid fa-crown"></i> LEADER</div>
+                <div class="bg-black/80 text-white text-[9px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded border border-white/10 w-fit">CP ${stats.power.toLocaleString()}</div>
             </div>
-            <div class="relative z-10 mt-auto p-4 w-full">
-                <div class="mb-2">
-                    <h2 class="text-3xl font-black text-white leading-none drop-shadow-md uppercase tracking-wide">${stats.name}</h2>
-                    <div class="text-yellow-500 text-sm font-bold tracking-widest opacity-80">${stats.job || 'Hero'}</div>
+
+            <div class="relative z-10 mt-auto p-2 sm:p-4 w-full">
+                <div class="mb-1 sm:mb-2">
+                    <h2 class="text-lg sm:text-3xl font-black text-white leading-none drop-shadow-md uppercase tracking-wide truncate">${stats.name}</h2>
+                    <div class="text-yellow-500 text-[10px] sm:text-sm font-bold tracking-widest opacity-80">${stats.job || 'Hero'}</div>
                 </div>
-                <div class="mb-3">
-                    <div class="flex justify-between text-[10px] text-gray-300 mb-1 font-mono">
+                
+                <div class="mb-2 sm:mb-3">
+                    <div class="flex justify-between text-[8px] sm:text-[10px] text-gray-300 mb-1 font-mono">
                         <span>LV.${stats.level}</span>
                         <span>${stats.exp} / ${maxExp}</span>
                     </div>
-                    <div class="w-full h-2 bg-gray-800 rounded-full overflow-hidden border border-white/10">
+                    <div class="w-full h-1.5 sm:h-2 bg-gray-800 rounded-full overflow-hidden border border-white/10">
                         <div class="h-full bg-gradient-to-r from-yellow-600 to-yellow-400" style="width: ${expPercent}%"></div>
                     </div>
                 </div>
-                <div class="flex gap-4 text-xs font-bold bg-black/60 p-2 rounded-lg border border-white/5">
+                
+                <div class="flex gap-2 sm:gap-4 text-[9px] sm:text-xs font-bold bg-black/60 p-1.5 sm:p-2 rounded-lg border border-white/5 justify-between md:justify-start">
                     <div class="flex items-center gap-1 text-red-400"><i class="fa-solid fa-sword"></i> ${stats.atk}</div>
                     <div class="flex items-center gap-1 text-green-400"><i class="fa-solid fa-heart"></i> ${stats.hp}</div>
                     <div class="flex items-center gap-1 text-blue-400"><i class="fa-solid fa-shield"></i> ${stats.def}</div>
                 </div>
             </div>
+            
             <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition duration-300 z-30">
-                <div class="bg-black/80 text-white px-4 py-2 rounded-full text-sm font-bold border border-white/20"><i class="fa-solid fa-gear"></i> MANAGE</div>
+                <div class="bg-black/80 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold border border-white/20 whitespace-nowrap"><i class="fa-solid fa-gear"></i> MANAGE</div>
             </div>
         </div>
     `;
