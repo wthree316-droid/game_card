@@ -1,39 +1,19 @@
 // js/modules/auth.js
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { 
-    getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, 
+    createUserWithEmailAndPassword, signInWithEmailAndPassword, 
     onAuthStateChanged, signOut 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { 
-    getFirestore, doc, setDoc, getDoc, onSnapshot, collection, query, orderBy, limit 
+    doc, setDoc, getDoc, onSnapshot, collection, query, orderBy, limit 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// ✅ Import resetGameData มาใช้งาน
+import { auth, db } from '../core/firebase-config.js';
+
 import { playerData, saveGame, resetGameData } from '../core/state.js';
 import { updateMailNotification } from './mail.js'; 
 import { createNewCard } from '../utils.js';
 
-const firebaseConfig = {
-    apiKey: "AIzaSyAd5lxzwrrJF3cgg3mvRe9ei0ZT0og2Y1Q",
-    authDomain: "testwebsite-91293.firebaseapp.com",
-    projectId: "testwebsite-91293",
-    storageBucket: "testwebsite-91293.firebasestorage.app",
-    messagingSenderId: "1035234509975",
-    appId: "1:1035234509975:web:841f5007ed6399b89955d2"
-};
-
-let app, auth, db;
 let unsubscribeListener = null;
-
-try {
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    db = getFirestore(app);
-    console.log("🔥 Firebase Initialized");
-} catch (e) {
-    console.error("Firebase Config Error:", e);
-}
 
 // ============================================================
 // ☁️ CLOUD SAVE SYSTEM
@@ -109,21 +89,17 @@ export function stopMailListener() {
 }
 
 // ============================================================
-// 🔐 AUTH LOGIC (ส่วนที่คุณขอแก้)
+// 🔐 AUTH LOGIC
 // ============================================================
 
 export function initAuth() {
-    if (!auth) return;
-
     onAuthStateChanged(auth, async (user) => {
-        // ✅ 1. ประกาศตัวแปร menu ตรงนี้ (บรรทัดแรกของ callback) เพื่อให้ใช้ได้ทั่วทั้งฟังก์ชัน
         const menu = document.getElementById('floating-menu-container');
 
         if (user) {
             console.log("✅ Logged in:", user.email);
             document.getElementById('login-overlay').classList.add('hidden');
 
-            // ✅ 2. สั่งโชว์เมนู (ถ้ามี)
             if (menu) menu.style.display = 'flex';
 
             const docRef = doc(db, "users", user.uid);
@@ -148,19 +124,16 @@ export function initAuth() {
                 resetGameData(); 
                 // 💰 แจกเงิน / เพชร
                 playerData.resources.gold += 3000;  
-                playerData.resources.gems += 20;  
+                playerData.resources.gems += 50;  
                 // 🎒 แจกไอเทม 
-                // รูปแบบ: playerData.items['ไอดีไอเทม'] = จำนวน;
-                playerData.items['pot_small'] = 3; 
+                playerData.items['pot_small'] = 1; 
                 playerData.items['tkt_exp'] = 1;
 
                 // 🃏 แจกการ์ด 
                 const starterIDs = ['c_001','c_002','c_003']; 
 
                 starterIDs.forEach(id => {
-                    // สร้างการ์ดตาม ID ที่ระบุ
                     const card = createNewCard(id); 
-                    
                     if (card) {
                         card.level = 1; 
                         playerData.inventory.push(card);
@@ -168,7 +141,6 @@ export function initAuth() {
                         console.warn(`⚠️ Starter card ID '${id}' not found in DB.`);
                     }
                 });
-                // ==========================================
                 
                 const cleanData = JSON.parse(JSON.stringify(playerData));
                 cleanData.email = user.email;
@@ -184,7 +156,6 @@ export function initAuth() {
             stopMailListener();
             document.getElementById('login-overlay').classList.remove('hidden');
 
-            // ✅ 3. สั่งซ่อนเมนูตอน Logout
             if (menu) menu.style.display = 'none';
         }
     });
@@ -219,7 +190,6 @@ window.authRegister = async () => {
 window.authLogout = async () => {
     if(!confirm("Log out?")) return;
     
-    // ✅ ล้างข้อมูลในเครื่องทิ้งก่อน Logout ป้องกันข้อมูลค้าง
     localStorage.removeItem('cardBattleSave');
     resetGameData(); 
     
