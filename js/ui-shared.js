@@ -29,15 +29,6 @@ export function updateUI() {
 }
 
 export function createCardElement(card, mode, isSelected = false) {
-    // ✅ 1. เพิ่ม Safety Check: ถ้าไม่มีข้อมูลการ์ด ให้คืนค่า div เปล่าๆ กลับไป (กันเกมค้าง)
-    if (!card) {
-        console.warn("createCardElement received null card data!");
-        const errorEl = document.createElement('div');
-        errorEl.className = "w-full h-full bg-red-900/50 border border-red-500 flex items-center justify-center text-red-500 text-xs font-bold";
-        errorEl.innerText = "Data Error";
-        return errorEl;
-    }
-
     const el = document.createElement('div');
     
     // 1. กำหนด Class ตามระดับดาว
@@ -50,7 +41,7 @@ export function createCardElement(card, mode, isSelected = false) {
     if (starCount === 6) rarityClass = "rarity-LEGEND";
     if (starCount >= 7)  rarityClass = "rarity-MYTHICAL";
 
-    // ข้อมูลธาตุ (ปรับสีพื้นหลังให้ทึบขึ้น ไม่ใช้ opacity เพื่อลดการคำนวณ)
+    // ข้อมูลธาตุ
     const elemData = {
         FIRE: { icon: '🔥', color: 'text-red-400', bg: 'bg-red-900' },
         WATER: { icon: '💧', color: 'text-blue-400', bg: 'bg-blue-900' },
@@ -64,32 +55,30 @@ export function createCardElement(card, mode, isSelected = false) {
     if (starCount >= 7) {
         starsHtml = `
             <div class="flex items-center justify-center animate-pulse" title="Mythical Rank">
-                <i class="fa-solid fa-infinity text-sm text-cyan-400 drop-shadow-md"></i>
+                <i class="fa-solid fa-infinity text-[10px] sm:text-sm text-cyan-400 drop-shadow-md"></i>
             </div>
         `;
     } else {
         const starColor = starCount === 6 ? 'text-orange-500' : 'text-yellow-400';
         for(let i=0; i < starCount; i++) {
-            starsHtml += `<i class="fa-solid fa-star text-[9px] mx-[0.5px] ${starColor}"></i>`;
+            // ปรับขนาดดาว: มือถือ text-[7px], จอปกติ text-[9px]
+            starsHtml += `<i class="fa-solid fa-star text-[7px] sm:text-[9px] mx-[0.5px] ${starColor}"></i>`;
         }
     }
 
-    // เช็คว่าเป็นรูปภาพหรือ Emoji
     const isImage = card.icon.includes('/') || card.icon.includes('.');
     const atkIcon = getAttackTypeIcon(card.role, card.type);
 
-    // --- 🚀 PERFORMANCE OPTIMIZATION ---
-    // ใช้ will-change: transform เพื่อให้ GPU ช่วย render
-    // ตัด backdrop-blur ออก เปลี่ยนเป็นสีพื้นหลังโปร่งแสงธรรมดา (bg-slate-900/90)
-    
+    // --- Container ---
     el.className = `game-card-v2 w-full h-[95px] sm:h-[130px] md:h-[173px] rounded-xl flex flex-col justify-between cursor-pointer group ${rarityClass} ${isSelected ? 'ring-4 ring-green-500 scale-95 opacity-60' : ''} relative overflow-hidden bg-slate-900 shadow-md transition-transform duration-200`;
     el.style.willChange = "transform"; 
 
+    // --- HTML Structure (Responsive Tweaks) ---
     el.innerHTML = `
         <div class="absolute inset-0 z-0">
             ${isImage 
                 ? `<img src="${card.icon}" class="w-full h-full object-top group-hover:scale-105 transition-transform duration-500" loading="lazy" alt="${card.name}">`
-                : `<div class="w-full h-full flex items-center justify-center text-7xl bg-slate-800 text-slate-600">${card.icon}</div>`
+                : `<div class="w-full h-full flex items-center justify-center text-5xl sm:text-7xl bg-slate-800 text-slate-600">${card.icon}</div>`
             }
             <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent pointer-events-none"></div>
         </div>
@@ -97,45 +86,45 @@ export function createCardElement(card, mode, isSelected = false) {
         ${(starCount >= 3 && starCount < 6) ? '<div class="foil-shine z-10 opacity-20 pointer-events-none"></div>' : ''}
         ${starCount === 6 ? '<div class="legendary-fire z-10 opacity-30 pointer-events-none"></div>' : ''}
         
-        <div class="relative z-20 flex justify-between items-start p-2">
-            <div class="w-7 h-7 rounded-lg ${elemData.bg} border border-white/20 flex items-center justify-center shadow">
-                <span class="${elemData.color} text-sm">${elemData.icon}</span>
+        <div class="relative z-20 flex justify-between items-start p-1 sm:p-2">
+            <div class="w-5 h-5 sm:w-7 sm:h-7 rounded-lg ${elemData.bg} border border-white/20 flex items-center justify-center shadow">
+                <span class="${elemData.color} text-[10px] sm:text-sm">${elemData.icon}</span>
             </div>
-            <div class="bg-slate-900/90 px-2 py-0.5 rounded text-[9px] font-bold text-gray-200 border border-white/10 shadow">
-                CP <span class="text-white text-[10px]">${card.power || 0}</span>
+            <div class="bg-slate-900/90 px-1.5 py-0.5 rounded text-[7px] sm:text-[9px] font-bold text-gray-200 border border-white/10 shadow">
+                CP <span class="text-white text-[8px] sm:text-[10px]">${card.power || 0}</span>
             </div>
         </div>
 
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl font-black text-white/5 pointer-events-none z-10 tracking-tighter">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl sm:text-6xl font-black text-white/5 pointer-events-none z-10 tracking-tighter">
             ${(card.rarity || 'COM').substring(0,3)} 
         </div>
         
         <div class="flex-1"></div>
 
-        <div class="relative z-20 p-2 space-y-1">
+        <div class="relative z-20 p-1 sm:p-2 space-y-0.5 sm:space-y-1">
             
-            <div class="flex justify-between items-end mb-1 pl-1">
-                <div class="text-xs font-bold text-white truncate max-w-[70%] drop-shadow-md">${card.name}</div>
+            <div class="flex justify-between items-end mb-0.5 pl-0.5">
+                <div class="text-[10px] sm:text-xs font-bold text-white truncate max-w-[70%] drop-shadow-md leading-tight">${card.name}</div>
                 <div class="flex drop-shadow-md">${starsHtml}</div>
             </div>
             
-            <div class="grid grid-cols-2 gap-2 text-[9px] font-mono text-gray-200 bg-slate-900/95 rounded border border-white/10 p-1 shadow-sm">
-                <div class="flex items-center gap-1.5 pl-1">
-                    <span class="text-sm">${atkIcon}</span>
+            <div class="grid grid-cols-2 gap-1 sm:gap-2 text-[8px] sm:text-[9px] font-mono text-gray-200 bg-slate-900/95 rounded border border-white/10 p-0.5 sm:p-1 shadow-sm">
+                <div class="flex items-center gap-1 pl-0.5">
+                    <span class="text-[10px] sm:text-sm">${atkIcon}</span>
                     <span class="font-bold text-white">${card.atk}</span>
                 </div>
-                <div class="flex items-center justify-end gap-1.5 pr-1">
+                <div class="flex items-center justify-end gap-1 pr-0.5">
                     <span class="font-bold text-white">${card.hp}</span>
-                    <i class="fa-solid fa-heart text-red-500 text-[10px]"></i>
+                    <i class="fa-solid fa-heart text-red-500 text-[8px] sm:text-[10px]"></i>
                 </div>
             </div>
         </div>
 
-        <div class="info-btn absolute top-10 right-2 w-6 h-6 hidden group-hover:flex bg-slate-800/90 hover:bg-blue-600 rounded-full items-center justify-center text-[10px] text-white shadow border border-white/20 z-30 transition-colors">
+        <div class="info-btn absolute top-8 sm:top-10 right-1 sm:right-2 w-5 h-5 sm:w-6 sm:h-6 hidden group-hover:flex bg-slate-800/90 hover:bg-blue-600 rounded-full items-center justify-center text-[8px] sm:text-[10px] text-white shadow border border-white/20 z-30 transition-colors">
             <i class="fa-solid fa-info"></i>
         </div>
 
-        ${mode === 'deck' ? '<div class="absolute -top-2 -right-2 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-lg z-30 hover:bg-red-500 border-2 border-slate-900">✕</div>' : ''}
+        ${mode === 'deck' ? '<div class="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-red-600 text-white w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[8px] sm:text-[10px] shadow-lg z-30 hover:bg-red-500 border-2 border-slate-900">✕</div>' : ''}
     `;
 
     return el;
