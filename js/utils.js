@@ -34,11 +34,8 @@ export function createNewCard(fixedCardId = null) {
     
     const template = CARD_DATABASE[templateId];
     
-    // ✅✅✅ เพิ่มจุดเช็ค: ถ้าหา ID ไม่เจอ ให้แจ้งเตือนและกันไม่ให้พัง
     if (!template) {
         console.error(`❌ Error: Card ID '${templateId}' not found in CARD_DATABASE.`);
-        
-        // กันตาย: ถ้าหาไม่เจอ ให้ลองสุ่มใบอื่นมาแทน (หรือ return null)
         const keys = Object.keys(CARD_DATABASE);
         if(keys.length > 0) {
             const randomId = keys[0];
@@ -47,7 +44,6 @@ export function createNewCard(fixedCardId = null) {
         }
         return null;
     }
-    // ✅✅✅ จบจุดเช็ค
 
     let initialStars = 1;
     if (template.rarity === 'U') initialStars = 2;
@@ -84,15 +80,13 @@ export function getCardStats(inventoryItem) {
     if (!inventoryItem) return null;
     
     // --- 🚀 เริ่มส่วน MEMOIZATION (จำค่า) ---
-    // สร้าง Key ที่ระบุเอกลักษณ์ของการ์ด ณ สถานะปัจจุบัน
-    // ถ้า Level, Star, หรือของสวมใส่เปลี่ยน Key จะเปลี่ยน ทำให้คำนวณใหม่
     const equipKey = inventoryItem.equipped ? JSON.stringify(inventoryItem.equipped) : 'no_equip';
     const traitKey = inventoryItem.traits ? JSON.stringify(inventoryItem.traits) : 'no_traits';
     
-    // Key ประกอบด้วย: UID + Level + Stars + Tier + Equipment + Traits + BonusStats
-    const cacheKey = `${inventoryItem.uid}_lv${inventoryItem.level}_s${inventoryItem.stars || 1}_t${inventoryItem.tier || 1}_${equipKey}_${traitKey}_${inventoryItem.bonusHp || 0}_${inventoryItem.bonusAtk || 0}`;
+    // ✅✅✅ แก้ไขจุดนี้: เพิ่ม inventoryItem.cardId เข้าไปใน Key ด้วย!
+    // เพื่อให้ Cache แยกแยะการ์ดแต่ละใบออกจากกัน แม้จะไม่มี UID (เช่นใน Encyclopedia)
+    const cacheKey = `${inventoryItem.uid || 'no_uid'}_${inventoryItem.cardId}_lv${inventoryItem.level}_s${inventoryItem.stars || 1}_t${inventoryItem.tier || 1}_${equipKey}_${traitKey}_${inventoryItem.bonusHp || 0}_${inventoryItem.bonusAtk || 0}`;
 
-    // ถ้ามีค่านี้ในความจำแล้ว ให้ส่งกลับไปเลย (ไม่ต้องคำนวณ)
     if (statsCache.has(cacheKey)) {
         return statsCache.get(cacheKey);
     }
@@ -202,13 +196,13 @@ export function getCardStats(inventoryItem) {
         equipped: equipped
     };
 
-    // ✅ บันทึกผลลัพธ์ลง Cache ก่อนส่งคืน
+    // บันทึก Cache
     statsCache.set(cacheKey, result);
 
     return result;
 }
 
-// --- ฟังก์ชันฮีโร่ (อัปเดตใหม่) ---
+// --- ฟังก์ชันฮีโร่ (เหมือนเดิม) ---
 export function getHeroStats(heroData) {
     const template = HERO_DATABASE[heroData.heroId];
     if (!template) return null;
@@ -237,16 +231,13 @@ export function getHeroStats(heroData) {
 
     const power = Math.floor((finalHp/5) + finalAtk + finalDef + (finalSpd*0.5) + (finalCrit*500));
 
-    // ✅ 2. หา Passive ตาม Job ของฮีโร่ (ถ้าไม่มีให้ใช้ Default)
-    // การจับคู่: พยายามหาจาก ID ก่อน ถ้าไม่มีให้เดาจาก Job หรือชื่อ
     let passiveKey = heroData.heroId; 
     if (!HERO_PASSIVES[passiveKey]) {
-        // Fallback Logic (ถ้า ID ไม่ตรงเป๊ะ)
         if (template.job === 'Warrior') passiveKey = 'h_warrior';
         else if (template.job === 'Mage') passiveKey = 'h_mage';
         else if (template.job === 'Rogue') passiveKey = 'h_rogue';
         else if (template.job === 'Healer') passiveKey = 'h_healer';
-        else passiveKey = 'h_warrior'; // Default
+        else passiveKey = 'h_warrior';
     }
 
     const passiveSkill = HERO_PASSIVES[passiveKey] || { name: "Leadership", desc: "No passive effect." };
@@ -257,7 +248,7 @@ export function getHeroStats(heroData) {
         hp: finalHp, maxHp: finalHp,
         atk: finalAtk, def: finalDef, spd: finalSpd, crit: finalCrit,
         power: power,
-        passive: passiveSkill // ✅ เพิ่มข้อมูล Passive ลงไป
+        passive: passiveSkill
     };
 }
 
