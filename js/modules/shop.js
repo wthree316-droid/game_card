@@ -113,7 +113,7 @@ function renderShopContent() {
     // ปรับ Grid ให้เหมาะกับการ์ด (2 คอลัมน์ในมือถือ, 5 ใน PC)
     const gridClass = useCardLayout 
         ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
-        : "grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3";
+        : "grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-4"; // 👈 แก้ตรงนี้: xl:grid-cols-6 -> 5, gap-3 -> 4
 
     const fragment = document.createDocumentFragment();
     const gridEl = document.createElement('div');
@@ -206,23 +206,20 @@ function renderShopContent() {
             const isImg = item.icon.includes('/') || item.icon.includes('.');
             
             const itemEl = document.createElement('div');
-            itemEl.className = `relative aspect-square bg-slate-800 rounded-xl border-2 ${rarityColor} p-3 flex flex-col items-center justify-between shadow-xl group hover:-translate-y-1 transition-transform duration-300 overflow-hidden animate-fade-in`;
+            itemEl.className = `relative aspect-[4/5] bg-slate-800 rounded-xl border-2 ${rarityColor} p-3 flex flex-col items-center justify-between shadow-xl group hover:-translate-y-1 transition-transform duration-300 overflow-hidden animate-fade-in`;
             
             itemEl.innerHTML = `
                 <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-white/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                 
-                <div class="flex-1 flex items-center justify-center w-full relative z-10 pointer-events-none">
-                    ${isImg ? `<img src="${item.icon}" class="w-2/3 h-2/3 object-contain drop-shadow-xl group-hover:scale-110 transition-transform">` 
+                <div class="flex-1 flex items-center justify-center w-full relative z-10 pointer-events-none min-h-0"> ${isImg ? `<img src="${item.icon}" class="w-2/3 h-2/3 object-contain drop-shadow-xl group-hover:scale-110 transition-transform">` 
                             : `<div class="text-5xl drop-shadow-lg">${item.icon}</div>`}
                 </div>
 
-                <div class="w-full relative z-10 text-center mb-1 pointer-events-none">
-                    <div class="text-xs md:text-sm font-bold text-white truncate px-1">${item.name}</div>
+                <div class="w-full relative z-10 text-center mb-2 pointer-events-none shrink-0"> <div class="text-xs md:text-sm font-bold text-white truncate px-1">${item.name}</div>
                     <div class="mt-1">${priceTag}</div>
                 </div>
 
-                <div class="w-full relative z-20">
-                     ${buyButton}
+                <div class="w-full relative z-20 shrink-0"> ${buyButton}
                 </div>
             `;
             gridEl.appendChild(itemEl);
