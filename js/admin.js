@@ -4,9 +4,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { 
     getFirestore, collection, getDocs, doc, getDoc, updateDoc, 
-    addDoc, query, orderBy, limit, where 
+    addDoc, query, orderBy, limit, where, setDoc, deleteDoc 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
 // 2. IMPORT CONFIGS
 import { 
     CARD_DATABASE, 
@@ -46,12 +45,12 @@ window.adminLogin = async () => {
         const userCredential = await signInWithEmailAndPassword(auth, email, pass);
         const user = userCredential.user;
 
-        const docRef = doc(db, "users", user.uid);
-        const docSnap = await getDoc(docRef);
+        const roleRef = doc(db, "user_roles", user.uid);
+        const roleSnap = await getDoc(roleRef);
 
-        if (docSnap.exists()) {
-            const userData = docSnap.data();
-            currentAdminRole = userData.role || 'member';
+        if (roleSnap.exists()) {
+            const roleData = roleSnap.data();
+            currentAdminRole = roleData.role || 'member'; 
 
             if (currentAdminRole === 'superadmin' || currentAdminRole === 'admin') {
                 const statusEl = document.getElementById('admin-status');
@@ -145,15 +144,20 @@ window.loadAllUsers = async () => {
             else if(role === 'admin') roleBadge = '<i class="fa-solid fa-shield-halved text-blue-400 ml-1"></i>';
 
             const el = document.createElement('div');
-            el.className = "bg-slate-700/50 p-3 rounded-lg cursor-pointer hover:bg-blue-900/30 hover:border-blue-500 border border-slate-600 transition group mb-2";
+            el.className = "bg-slate-800/80 p-3 rounded-lg border-l-4 border-slate-600 hover:border-blue-500 hover:bg-slate-700 transition cursor-pointer group relative overflow-hidden mb-2 shadow-sm";
             el.innerHTML = `
-                <div class="flex justify-between items-start pointer-events-none">
+                <div class="flex justify-between items-center relative z-10">
                     <div>
-                        <div class="font-bold text-white text-sm group-hover:text-blue-300">${name} <span class="text-xs text-gray-500 bg-black/30 px-1 rounded">Lv.${lvl}</span> ${roleBadge}</div>
-                        <div class="text-[10px] text-gray-400 font-mono truncate w-40 opacity-70">${uid}</div>
+                        <div class="font-bold text-gray-200 text-sm group-hover:text-blue-300 flex items-center gap-2">
+                            ${name} 
+                            ${roleBadge}
+                        </div>
+                        <div class="text-[10px] text-gray-500 font-mono mt-0.5 opacity-60 group-hover:opacity-100 transition">UID: ${uid.substr(0,8)}...</div>
                     </div>
                     <div class="text-right">
-                        <div class="text-xs text-yellow-500 font-mono"><i class="fa-solid fa-coins"></i> ${gold.toLocaleString()}</div>
+                        <span class="text-xs bg-black/30 px-2 py-1 rounded text-yellow-500 font-mono border border-yellow-500/10">
+                            Lv.${lvl}
+                        </span>
                     </div>
                 </div>
             `;
@@ -477,33 +481,64 @@ window.deleteItem = async (type, index) => {
 window.renderSuperadminTab = async () => {
     if (currentAdminRole !== 'superadmin') return;
     
-    // Admins List
     const adminListEl = document.getElementById('list-admins');
-    adminListEl.innerHTML = 'Loading...';
+    adminListEl.innerHTML = '<div class="col-span-full text-center text-gray-500 animate-pulse">Loading Admin Data...</div>';
     
-    const qAdmins = query(collection(db, "users"), where("role", "in", ["admin", "superadmin"]));
+    const qAdmins = collection(db, "user_roles"); 
     const snap = await getDocs(qAdmins);
     
     adminListEl.innerHTML = '';
     snap.forEach(doc => {
         const d = doc.data();
+        // กรองเฉพาะคนที่มี Role
+        if (d.role !== 'admin' && d.role !== 'superadmin') return;
+
         const isMe = doc.id === auth.currentUser.uid;
         const isSuper = d.role === 'superadmin';
         
+        // 🎨 ตกแต่ง: แยกสีตามยศ (Super=Gold, Admin=Blue)
+        const themeColor = isSuper ? 'yellow' : 'blue';
+        const icon = isSuper ? 'fa-crown' : 'fa-shield-halved';
+        const bgClass = isSuper 
+            ? 'bg-gradient-to-br from-yellow-900/40 to-slate-900 border-yellow-500/50 shadow-yellow-900/20' 
+            : 'bg-gradient-to-br from-blue-900/40 to-slate-900 border-blue-500/50 shadow-blue-900/20';
+
         const div = document.createElement('div');
-        div.className = `p-3 rounded border flex justify-between items-center ${isSuper ? 'bg-yellow-900/20 border-yellow-600' : 'bg-blue-900/20 border-blue-600'}`;
+        // ใช้ Flexbox จัด Layout ภายในการ์ด
+        div.className = `p-4 rounded-xl border shadow-lg relative overflow-hidden group hover:scale-[1.02] transition-all duration-300 ${bgClass}`;
+        
         div.innerHTML = `
-            <div>
-                <div class="font-bold text-xs ${isSuper ? 'text-yellow-400' : 'text-blue-400'}">${d.role.toUpperCase()}</div>
-                <div class="text-sm text-white">${d.email}</div>
-                <div class="text-[10px] text-gray-500 font-mono">${doc.id}</div>
+            <div class="flex justify-between items-start mb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center bg-${themeColor}-500/20 text-${themeColor}-400 border border-${themeColor}-500/30">
+                        <i class="fa-solid ${icon}"></i>
+                    </div>
+                    <div>
+                        <div class="font-black text-xs text-${themeColor}-500 tracking-widest uppercase">${d.role}</div>
+                        <div class="text-[10px] text-gray-400">Promoted by: ${d.promotedBy ? d.promotedBy.split('@')[0] : 'System'}</div>
+                    </div>
+                </div>
+                ${isMe ? '<span class="text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded border border-green-500/30">YOU</span>' : ''}
             </div>
-            ${(!isMe && !isSuper) ? `<button onclick="demoteAdmin('${doc.id}')" class="text-red-500 hover:text-red-400 text-xs border border-red-500/50 px-2 py-1 rounded">DEMOTE</button>` : ''}
+
+            <div class="bg-black/40 rounded p-2 border border-white/5 mb-3">
+                <div class="text-[10px] text-gray-500 uppercase font-bold mb-1">USER UID</div>
+                <div class="font-mono text-xs text-gray-300 break-all select-all hover:text-white transition cursor-pointer" onclick="navigator.clipboard.writeText('${doc.id}'); alert('Copied UID!')">
+                    ${doc.id} <i class="fa-regular fa-copy ml-1 opacity-50"></i>
+                </div>
+            </div>
+
+            ${(!isMe && !isSuper) ? `
+            <button onclick="demoteAdmin('${doc.id}')" class="w-full text-center text-xs bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/30 py-2 rounded transition font-bold uppercase">
+                <i class="fa-solid fa-user-slash mr-1"></i> Demote
+            </button>
+            ` : ''}
+            
+            <i class="fa-solid ${icon} absolute -bottom-4 -right-4 text-8xl opacity-5 text-${themeColor}-500 pointer-events-none group-hover:opacity-10 transition"></i>
         `;
         adminListEl.appendChild(div);
     });
 
-    // Audit Logs
     loadAuditLogs();
 };
 
@@ -542,7 +577,14 @@ window.promoteToAdmin = async () => {
     if(!uid) return alert("Please enter User UID");
     if(!confirm(`Promote ${uid} to ADMIN?`)) return;
     try {
-        await updateDoc(doc(db, "users", uid), { role: "admin" });
+        // ใช้ setDoc เพราะถ้าเขายังไม่เคยเป็น Admin อาจจะยังไม่มี document นี้
+        await setDoc(doc(db, "user_roles", uid), { 
+            role: "admin",
+            promotedAt: Date.now(),
+            promotedBy: auth.currentUser.email
+        }, { merge: true });
+
+        await logAction("PROMOTE_ADMIN", `Promoted ${uid} to ADMIN`);
         alert("✅ User Promoted!");
         renderSuperadminTab();
     } catch(e) { alert("Error: " + e.message); }
@@ -551,8 +593,32 @@ window.promoteToAdmin = async () => {
 window.demoteAdmin = async (uid) => {
     if(!confirm(`Demote ${uid} to MEMBER?`)) return;
     try {
-        await updateDoc(doc(db, "users", uid), { role: "member" });
+        // ✅ลบออกจาก user_roles หรือแก้ role เป็น member
+        
+        await deleteDoc(doc(db, "user_roles", uid));
+        
+        await logAction("DEMOTE_ADMIN", `Demoted ${uid}`);
         alert("✅ User Demoted!");
         renderSuperadminTab();
     } catch(e) { alert("Error: " + e.message); }
+}
+
+window.toggleLogFullScreen = () => {
+    const el = document.getElementById('log-container');
+    const btnIcon = document.getElementById('btn-icon-expand');
+    
+    // เช็คว่าตอนนี้เต็มจออยู่ไหม
+    const isFull = el.classList.contains('fixed');
+    
+    if (!isFull) {
+        // 🟢 เปิดโหมดเต็มจอ
+        el.classList.add('fixed', 'inset-0', 'z-[100]', 'h-screen', 'w-screen', 'p-6', 'bg-slate-900');
+        el.classList.remove('rounded-xl', 'border', 'col-span-1'); // เอาขอบมนออก
+        btnIcon.className = "fa-solid fa-compress"; // เปลี่ยนไอคอนเป็นย่อ
+    } else {
+        // 🔴 ปิดโหมดเต็มจอ (กลับสู่สภาพเดิม)
+        el.classList.remove('fixed', 'inset-0', 'z-[100]', 'h-screen', 'w-screen', 'p-6', 'bg-slate-900');
+        el.classList.add('rounded-xl', 'border');
+        btnIcon.className = "fa-solid fa-expand"; // เปลี่ยนไอคอนเป็นขยาย
+    }
 };
